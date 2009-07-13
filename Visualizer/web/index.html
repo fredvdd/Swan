@@ -1,0 +1,20 @@
+<html>
+<head>
+<title>Stage Visualizer & Stepper</title>
+<script src="functions.js"></script>
+</head>
+
+<body>
+<button id='break' onclick='click_break()' style="font: 16px Arial">Break</button>&nbsp;&nbsp;&nbsp;&nbsp;
+<button id='step'  onclick='click_step()' style="font: 16px Arial">Step</button>&nbsp;&nbsp;&nbsp;&nbsp;
+<button id='start'  onclick='click_start()'  style="font: 16px Arial">Start</button>&nbsp;&nbsp;&nbsp;&nbsp;
+
+	<object id='svg2' data="system.svg" type="image/svg+xml" width="100%" height="400px"
+		style="position:absolute; top:35px; left:0px"></object>
+ 	<object id='svg' data="system.svg" type="image/svg+xml" width="100%" height="400px"
+		style="position:absolute; top:35px; left:0px"></object>
+
+<script>begin()</script>
+</body>
+
+</html>

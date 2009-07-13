@@ -1,0 +1,6 @@
+text {fill: #2465A4; font-family: sans-serif; font-size: 10pt;}
+.header {fill: #CC0000; font-family: sans-serif; font-size: 12pt;}
+.host {fill: none; stroke: #2E3436; stroke-width: 1px;}
+.node1 {fill: #EEEEEC;  stroke: none; }
+.node2 {fill: #BABDB6;  stroke: none;}
+.manager {fill: none;  stroke: #2E3436; stroke-width: 1px;}
