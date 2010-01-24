@@ -1,5 +1,5 @@
 import unittest
-from Manager.locator import *
+from Manager.external import *
 
 TEST_PORT = 6022
 

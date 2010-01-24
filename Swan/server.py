@@ -1,87 +1,85 @@
 from Actors.keywords import *
 import socket
+from BaseHTTPServer import BaseHTTPRequestHandler
+
+
 
 class Server(LocalActor):
 	
 	def birth(self, address, port):
 		print "SWAN Server starting..."
-		#Init handlers
-		#self.handlers = [RequestHandler(n) for n in range(0,5)]
-		
-		self.sockets = {}
+		self.handlers = [RequestHandler(n) for n in range(0,5)]
 		
 		#Init socket
+		self.request_version = 'HTTP/1.1'
 		self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.socket.bind((address, port))
-		self.server_address = self.socket.getsockname()
-		self.host_ip, self.server_port = self.server_address[:2]
-		self.server_name = socket.getfqdn(self.host_ip)
-		print "Socket " + self.server_name + "(" + self.host_ip + ") on port " + str(self.server_port)
 		self.socket.listen(5)
 		self.accept()
 		
 	def accept(self):
-		n = 0
+	 	current = 0
 		while 1:
 			try:
 				rsock, client_address = self.socket.accept()
-				self.sockets[client_address] = rsock
-				
-				ssock = SwanSocket(rsock)
-				ta = TestActor()
-				ta.ping(ssock)
-				
-				rfile = rsock.makefile('rb', -1) 
-				rstrings = [line.strip() for line in rfile.readlines()]
-				print rstrings
-				
-				#self.handlers[n].handle(client_address, rstrings, self)
-				
-				n = (n + 1) % len(self.handlers)
+				self.handlers[current].handle(wrapper(rsock), client_address)
+				print "sent!"
+				current = (current + 1) % len(self.handlers)
 			except KeyboardInterrupt:
+				self.socket.flush()
 				self.socket.close()
-				self.close()
-				
-	def respond(self, response):
-		print "oy"
-		addr, resp = response
-		req = self.sockets.pop(addr)
-		wfile = req.makefile('wb',0)
-		wfile.write(resp)
-		wfile.flush()
-		wfile.close()
-		req.close()
-		print "joy"
-	
-	def close(self):
-		self.socket.close()
-		self.die()
-		
-class SwanSocket:
-	def __init__(self, socket):
-		self.sock = socket
-	
-	def __deepcopy__(self, memo):
-		return self
-		
-	def get_socket(self):
-		return self.sock
-		
-class TestActor(MobileActor):
-	def birth(self):
-		print "Enter TestActor, stage left"
-		
-	def ping(self, msg):
-		print "Pinged"
-	
-class RequestHandler(MobileActor):
-	
+
+class TestResponseMixin(object):
+
+	def respond(self, outfile, request):
+		outfile.write("%s %d %s\r\n" % ("HTTP/1.1", 200, "OK"))
+		outfile.write("%s: %s\r\n" % ("Content-type", "text/html"))
+		outfile.write("\r\n")
+		outfile.write("<html><head><title>Title goes here.</title></head>")
+		outfile.write("<body><p>This is a test.</p>")
+		outfile.write("<p>Request was to: %s</p>" % request)
+		outfile.write("</body></html>")
+		outfile.flush()
+		#outfile.close()
+
+class RequestHandler(SocketActor, BaseHTTPRequestHandler, TestResponseMixin):
+
 	def birth(self, num):
 		self.num = num
-		print "Request Handler "+ str(num) + " born"
+		self.default_request_version = "HTTP/1.1"
 		
-	def handle(self, client_address, request, responder):
-		print str(self.num) + " says ASdf"
-		print client_address
-		responder.respond(client_address, "HTTP/1.1 404 Not Found")
+	def handle(self, sock, client_address):
+		self.socket = sock.get_content()
+		self.client_address = client_address
+		self.rfile = self.socket.makefile('rb',-1)
+		self.wfile = self.socket.makefile('wb',0)
 		
+		self.close_connection = 1
+		self.handle_request()
+		while not self.close_connection:
+			self.handler_request()
+		
+		self.respond(self.wfile, self.path)
+		self.finish()
+		print "request handled\n***********************************"
+	
+	def handle_request(self):
+		self.raw_requestline = self.rfile.readline()
+		if not self.raw_requestline:
+			self.close_connection = 1
+			return
+		if not self.parse_request():
+			return
+		print "%s, %s, %s" % (self.command, self.path, self.request_version)
+		for header in self.headers:
+			print header + " : " + self.headers.get(header, "")
+
+class wrapper:
+	def __init__(self, content):
+		self.content = content
+
+	def __deepcopy__(self, memo):
+		return self
+
+	def get_content(self):
+		return self.content

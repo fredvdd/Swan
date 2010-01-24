@@ -1,6 +1,6 @@
 from Actors.keywords import *
-from Actors.Device.GTK.widgets import *
-from Actors.Device.GTK.layout import *
+#from Actors.Device.GTK.widgets import *
+#from Actors.Device.GTK.layout import *
 from Actors.Device.input import Keyboard
 
 class User(NetworkActor):
@@ -17,9 +17,10 @@ class User(NetworkActor):
   def incoming(self, name, color, message):
     self.show_message(name, color, message)
 
-class ChatServer(NetworkSingletonActor):
+class ChatServer(NamedSingletonActor):
   
   def birth(self):
+	#NamedSingletonActor.__init__(self,)
     self.chatters = []
     
   def add(self, person):

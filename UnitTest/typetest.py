@@ -4,8 +4,8 @@ from UnitTest import empty
 class TypeTest(MobileActor):
   
   def birth(self):
-    anEmptyActor = Empty()
-    anotherEmptyActor = Empty()
+    anEmptyActor = empty.Empty()
+    anotherEmptyActor = empty.Empty()
 
     find()
     

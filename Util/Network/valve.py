@@ -34,7 +34,7 @@ class Valve(threading.Thread):
     self.__exiting = True
     try: 
       self.__socket.close()
-    except:
+    except Exception, e:
       print 'ERROR;', e.args
 
       
@@ -48,6 +48,8 @@ class Worker(threading.Thread):
     
   def run(self):
       while(True):
+        #print self.__socket.getsockname()
+        #print self.__socket.getpeername()
         obj = pickle.load(self.__socket.makefile('r'))
         try:
           result = self.__valve.incoming(obj)
