@@ -1,4 +1,5 @@
 from Actors.keywords import *
+from Swan.filehandler import FileHandler
 import socket
 from BaseHTTPServer import BaseHTTPRequestHandler
 
@@ -51,16 +52,17 @@ class RequestHandler(SocketActor, BaseHTTPRequestHandler, TestResponseMixin):
 	def handle(self, sock, client_address):
 		self.socket = sock.get_content()
 		self.client_address = client_address
+		print "Handling %s, %d" % self.client_address
 		self.rfile = self.socket.makefile('rb',-1)
 		self.wfile = self.socket.makefile('wb',0)
 		
 		self.close_connection = 1
 		self.handle_request()
 		while not self.close_connection:
-			self.handler_request()
+			self.handle_request()
 		
-		self.respond(self.wfile, self.path)
 		self.finish()
+		self.socket.close()
 		print "request handled\n***********************************"
 	
 	def handle_request(self):
@@ -73,6 +75,10 @@ class RequestHandler(SocketActor, BaseHTTPRequestHandler, TestResponseMixin):
 		print "%s, %s, %s" % (self.command, self.path, self.request_version)
 		for header in self.headers:
 			print header + " : " + self.headers.get(header, "")
+		#self.respond(self.wfile, self.path + " handled by " + str(self.num))
+		fh = FileHandler("/homes/jv06/public_html/")
+		self.wfile.write(fh.get(self.path))
+		self.wfile.flush()
 
 class wrapper:
 	def __init__(self, content):
