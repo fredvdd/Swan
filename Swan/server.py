@@ -9,7 +9,7 @@ class Server(LocalActor):
 	
 	def birth(self, address, port):
 		print "SWAN Server starting..."
-		self.handlers = [RequestHandler(n) for n in range(0,5)]
+		self.handlers = [InitialHandler(n) for n in range(0,1)]
 		
 		#Init socket
 		self.request_version = 'HTTP/1.1'
@@ -43,20 +43,22 @@ class TestResponseMixin(object):
 		outfile.flush()
 		#outfile.close()
 
-class RequestHandler(SocketActor, BaseHTTPRequestHandler, TestResponseMixin):
+class InitialHandler(SocketActor, BaseHTTPRequestHandler):
 
 	def birth(self, num):
 		self.num = num
 		self.default_request_version = "HTTP/1.1"
+		self.fh = SlowEchoHandler()#FileHandler("/Users/fred/Documents/Year1/CogRob")
 		
 	def handle(self, sock, client_address):
 		self.socket = sock.get_content()
 		self.client_address = client_address
 		print "Handling %s, %d" % self.client_address
+		
 		self.rfile = self.socket.makefile('rb',-1)
 		self.wfile = self.socket.makefile('wb',0)
 		
-		self.close_connection = 1
+		self.close_connection = 0
 		self.handle_request()
 		while not self.close_connection:
 			self.handle_request()
@@ -66,28 +68,44 @@ class RequestHandler(SocketActor, BaseHTTPRequestHandler, TestResponseMixin):
 		print "request handled\n***********************************"
 	
 	def handle_request(self):
-		self.raw_requestline = self.rfile.readline()
-		if not self.raw_requestline:
-			self.close_connection = 1
-			return
-		if not self.parse_request():
-			return
-		print "%s, %s, %s" % (self.command, self.path, self.request_version)
-		response = self.path + "<dl>"
-		for header in self.headers:
-			print header + " : " + self.headers.get(header, "")
-			response += "<dt><b>%s</b></dt><dd>%s</dd>" % (header, self.headers.get(header, ""))
-		#self.respond(self.wfile, response + "</ul> handled by " + str(self.num))
-		fh = FileHandler("/Users/fred/Documents/Year1/CogRob")
-		self.wfile.write(fh.get(self.path))
-		self.wfile.flush()
+		
+		callback('write', (self.fh.echo(self.rfile.readline()), self.wfile))
+#		self.raw_requestline = self.rfile.readline()
+#		if not self.raw_requestline:
+#			self.close_connection = 1
+#			return
+#		if not self.parse_request():
+#			return
+#		print "%s, %s, %s" % (self.command, self.path, self.request_version)
+#		response = self.path + "<dl>"
+#		for header in self.headers:
+#			print header + " : " + self.headers.get(header, "")
+#			response += "<dt><b>%s</b></dt><dd>%s</dd>" % (header, self.headers.get(header, ""))
+#		self.wfile.write(self.fh.get(self.path))
+#		self.wfile.flush()
+	def write(self, the_str, outfile):
+		outfile.write(the_str)
+	
+	def log_message(self, format, *args):
+		pass
+
+
+class SlowEchoHandler(MobileActor):
+
+	def birth(self):
+		pass
+
+	def echo(self, request, writer):
+		print "echoing request: %s" % request
+		writer.write(request)
+		return	
 
 class wrapper:
 	def __init__(self, content):
 		self.content = content
 
 	def __deepcopy__(self, memo):
-		return self
+		return wrapper(self.content)
 
 	def get_content(self):
 		return self.content
