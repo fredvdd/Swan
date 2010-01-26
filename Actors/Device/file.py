@@ -8,7 +8,10 @@ class File(MobileActor):
 		
 	
 	def read(self, size=-1):
-		self.file = open(filepath, mode)
-		res = self.file.read(size)
-		self.file.close()
-		return res
+		try:
+			self.file = open(self.filepath, self.mode)
+			res = self.file.read(size)
+			self.file.close()
+			return res
+		except IOError:
+			return ""

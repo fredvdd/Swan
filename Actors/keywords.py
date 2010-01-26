@@ -21,7 +21,7 @@ def migrate_to(remote_theatre):
 
 class SocketActor(ActorState):
   def __new__(cls, *args, **kwds):
-    print "Making SocketActor"
+    #print "Making SocketActor"
     type = cls.__name__
     module_name = inspect.getmodule(cls).__name__
     actor_id = local_theatre().create_actor(cls, module_name, type, args, kwds)

@@ -73,10 +73,12 @@ class RequestHandler(SocketActor, BaseHTTPRequestHandler, TestResponseMixin):
 		if not self.parse_request():
 			return
 		print "%s, %s, %s" % (self.command, self.path, self.request_version)
+		response = self.path + "<dl>"
 		for header in self.headers:
 			print header + " : " + self.headers.get(header, "")
-		#self.respond(self.wfile, self.path + " handled by " + str(self.num))
-		fh = FileHandler("/homes/jv06/public_html/")
+			response += "<dt><b>%s</b></dt><dd>%s</dd>" % (header, self.headers.get(header, ""))
+		#self.respond(self.wfile, response + "</ul> handled by " + str(self.num))
+		fh = FileHandler("/Users/fred/Documents/Year1/CogRob")
 		self.wfile.write(fh.get(self.path))
 		self.wfile.flush()
 
