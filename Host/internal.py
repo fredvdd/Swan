@@ -295,3 +295,29 @@ class TheatreInternalInterface(object):
     # TODO: work out what, remove?
     """Returns a random theatre in the ActorSpace"""
     return self.__migrator.atheatre()
+
+  def say_hello(self):
+	print "Hello"
+	
+  def open_port(self, port):
+	network_locator = rpc.RPCConnector(self.__manager_loc)
+	manager = network_locator.connect()
+	return manager.open_port(port)
+
+  def close_port(self, port):
+	network_locator = rpc.RPCConnector(self.__manager_loc)
+	manager = network_locator.connect()
+	return manager.close_port(port)
+
+  def accept_port(self, port):
+	network_locator = rpc.RPCConnector(self.__manager_loc)
+	manager = network_locator.connect()
+	return manager.accept_port(port)
+
+  def read_port(self, port):
+	network_locator = rpc.RPCConnector(self.__manager_loc)
+	manager = network_locator.connect()
+	return manager.read_port(port)
+	
+  def write_port(self, port, content):
+	pass
