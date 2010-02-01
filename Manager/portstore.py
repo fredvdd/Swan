@@ -1,117 +1,125 @@
 import threading
-from Util.Network import socketutil
+from Util.Network import socketutil, rpc
 from Manager.managerlog import log
 
-class PortStore(object):
-	def __init__(self):
-		self.__port_lock = threading.Lock()
-		self.__client_lock = threading.Lock()
-		self.listening_ports = {}
-		self.client_ports = {}
+class SocketStore(object):
+	def __init__(self, overlay):
+		self.__overlay = overlay
+		self.__socket_lock = threading.Lock()
+		self.sockets = {}
 	
-	def add_port(self, port, handler):
-		self.__port_lock.acquire()
-		self.listening_ports[port] = handler
-		self.__port_lock.release()
+	def add_socket(self, socket_id, handler):
+		with self.__socket_lock:
+			self.sockets[socket_id] = handler
+			print "Socket store is %s" % self.sockets
+			
+	def remove_socket(self, socket_id):
+		del self.sockets[socket_id]
 		
-	def add_client_port(self, port, handler):
-		self.__client_lock.acquire()
-		self.client_ports[port] = handler
-		self.__client_lock.release()
+	def get_socket(self, socket_id):
+		with self.__socket_lock:
+			return self.sockets[socket_id]
 		
-	def open_port(self, port):
-		ListeningPort(port, self).start()
-		
-	def close_port(self, port):
-		self.listening_ports[port].shutdown()
-		
-	def accept(self, port):
-		return self.listening_ports[port].accept()
-		
-	def read(self, port, size):
-		return self.client_ports[port].read(size)
-		
-	def write(self, port, string):
-		return self.client_ports[port].write(string)
+	def open_socket(self, port):
+		opened_socket = socketutil.server_socket(port)
+		socket_id = "%s:%d" % opened_socket.getsockname()
+		StageSocket(opened_socket, socket_id, self, self.__overlay.here).start()
+		return socketutil.SocketReference(self.__overlay.here, socket_id)
+	
+	def connect_socket(self, address):
+		socket = socketutil.client_socket()
+		socket.connect(address)
+		socket_id = "%s:%d" % socket.getsockname()
+		log.debug(self,"Connected socket is %s %s" % (socket, socket.getsockname()[1]))
+		StageSocket(socket, socket_id, self).start()
+		return socketutil.SocketReference(self.__overlay.here, socket_id)
 
-class ListeningPort(threading.Thread):
+class StageSocket(threading.Thread):
 
-	def __init__(self, port, parent):
+	def __init__(self, socket, socket_id, store, manager_loc):
 		threading.Thread.__init__(self)
-		parent.add_port(port, self)
-		self.semaphore = threading.Semaphore(1)
-		self.accepting = threading.Lock()
-		self.__port = port
-		self.__exiting = False
-		self.accept_lock = threading.Lock()
-		self.accept_lock.acquire()
+		log.debug(self, "New socket at %s" % socket_id)
+		self.__socket = socket
+		self.__id = socket_id
+		self.__store = store
+		self.__store.add_socket(socket_id, self)
+		self.__exit = False
+		self.__manager_loc = manager_loc
+		self.access = threading.Lock()
+		self.control = threading.Lock()
+		self.action = threading.Lock()
+		self.result = threading.Lock()
+		self.action.acquire()
+		self.result.acquire()
 
 	def run(self):
-		self.__socket = socketutil.server_socket(self.__port)
-		print "Port %d bound and waiting" % self.__port
-		while self.semaphore.acquire(True):
+		while self.action.acquire(True):
+			if self.__exit:
+				break
 			try:
-				print "Accepting on port %d" % self.__port
-				(clientsocket, address) = self.__socket.accept()
-				ClientPort(clientsocket, address, self).start()
-				self.accepted = "%s:%d" % clientsocket.getpeername()
-				self.accept_lock.release()
-				print "Accepted from %s" % self.accepted
+				self.control.acquire()
+				print "Do call %s on socket with %s and %s " % (self.method, self.args, self.kwds)
+				method = getattr(self.__socket,self.method)
+				self.__the_result = method(*self.args, **self.kwds)
+				self.control.release()
+				self.result.release()
 			except Exception, e:
 				log.debug(self, e)
-				if self.__exiting:
-					return
-
-	def accept(self):
-		with self.accepting:
-			self.accept_lock.acquire()
-			ret = self.accepted
-			self.semaphore.release()
-		return ret
+				if(self.__exit):
+					self.__the_result = "Socket closed"
+					self.control.release()
+					self.result.release()
+					break
+		
+	def __getattr__(self, name):
+		if self.__dict__.has_key(name):
+			return self.__dict__[name]
+		else:
+			print "No attr %s for listening socket" % name
+			if hasattr(self.__socket, name):
+				print "But it's socket has %s" % name
+				return SocketMethodCall(self, name, (self.access, self.action, self.control, self.result), self.__store, self.__manager_loc)
+		
+	def setCall(self, method, *args, **kwds):
+		self.method = method
+		self.args = args
+		self.kwds = kwds
+		
+	def getResult(self):
+		return self.__the_result
+		
+	def close(self):
+		print "Closing socket %s" % self.__id
+		self.__exit = True
+		self.__socket.close()
+		self.action.release()
+		self.__store.remove_socket(self.__id)
+		print "Closed %s" % self.__id 
 	
-	def shutdown(self):
-		#self.__log.debug(self, 'shutting down')
-		self.__exiting = True
-		try: 
-			self.__socket.close()
-			self.semaphore.release()
-		except Exception, e:
-			print 'ERROR;', e.args
-
-class ClientPort(threading.Thread):
-
-	def __init__(self, socket, address, parent):
-		threading.Thread.__init__(self)
-		#parent.add_client_port("%s:%d" % socket.getpeername(), self)
+class SocketMethodCall(object):
+		
+	def __init__(self, socket, method, locks, store, manager_loc):
 		self.socket = socket
-		self.address = address
-		self.rfile = socket.makefile('r')
-		self.wfile = socket.makefile('w')
-		self.access_lock = threading.Lock()
-		self.action = threading.Lock()
-		self.read_lock = threading.Lock()
-		self.write_lock = threading.Lock()
+		self.method = method
+		self.access, self.action, self.control, self.result = locks
+		self.store = store
+		self.manager_loc = manager_loc
 		
-	def run(self):
-		print "Handling %s, %d" % self.address
-		self.action.acquire()
-		self.read_lock.acquire()
-		self.read_done.acquire()
-		self.write_lock.acquire()
-		
-		while self.action.acquire():
-			if self.read_lock.acquire(False):
-				self.read_str = self.socket.read(self.size)
-				self.read_done.release()
-			if self.write_lock.acquire(False):
-				pass
-
-
-	def read(self, size):
-		with self.access_lock:
-			self.size = size
-			self.read_lock.release()
-			self.write_lock.acquire()
-			self.action.release()
-			with self.read_done:
-				return self.read_str
+	def __call__(self, *args, **kwds):
+		print "Calling %s with %s and %s" % (self.method, args, kwds) 
+		self.access.acquire()
+		print "Got access"
+		self.socket.setCall(self.method, *args, **kwds)
+		self.action.release()
+		self.result.acquire()
+		self.control.acquire()
+		res = self.socket.getResult()#getattr(self.__socket, self.method)(*self.args, **self.kwds)
+		if self.method == 'accept':
+			print "Accepted socket is %s %s" % res
+			socket_id = "%s:%d" % res[1]
+			StageSocket(res[0], "%s:%d" % res[1], self.store, self.manager_loc)
+			return socketutil.SocketReference(self.manager_loc, socket_id)
+		#print "Got %s:%d" % res
+		self.control.release()
+		self.access.release()
+		return res

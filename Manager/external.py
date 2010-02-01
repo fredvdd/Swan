@@ -2,7 +2,7 @@ import threading
 import random
 from managerlog import log
 from overlay import Overlay
-from portstore import PortStore
+from portstore import SocketStore
 from Util.Network import socketutil
 
 class ManagerExternalInterface(object):
@@ -17,7 +17,7 @@ class ManagerExternalInterface(object):
     self.__location_lock = threading.Lock()
     self.__theatre_lock = threading.Lock()
     self.__theatres = []
-    self.__port_store = PortStore()
+    self.__socket_store = SocketStore(overlay)
     log.debug(self, 'initialised')
 
   def addnode(self, id, location):
@@ -145,23 +145,17 @@ class ManagerExternalInterface(object):
   def __str__(self):
     return 'ManagerExternalInterface'
 
-  def open_port(self, port):
+  def open_socket(self, port):
     log.debug(self, "Opening port %d" % port)
-    self.__port_store.open_port(port)
-    return True
-  	
-  def close_port(self, port):
-	log.debug(self, "Closing port %d" % port)
-	self.__port_store.close_port(port)
+    ref = self.__socket_store.open_socket(port)
+    print ref
+    return ref
 
-  def accept_port(self, port):
-    log.debug(self, "Accept for port %d" % port)
-    return self.__port_store.accept(port)
-    
-  def read_port(self, port, size=0):
-	log.debug(self, "Read %d bytes from %d" % (size, port))
-	return self.__port_store.read(port, size)
+  def connect_socket(self, address):
+	log.debug(self, "Connecting to %s:%d" % address)
+	return self.__socket_store.connect_socket(address)
 	
-  def write_port(self, port, string):
-	log.debug(self, "Write %s... to %d" % (string[:10], port))
-	self.__port_store.write(port, string)
+  def socket_call(self, socket, method, *args, **kwds):
+    log.debug(self,"Call %s on socket %s with args %s " % (method, socket, args))
+    return getattr(self.__socket_store.get_socket(socket), method)(*args, **kwds)
+    #return "Goodbye"

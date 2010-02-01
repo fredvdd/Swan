@@ -183,3 +183,17 @@ def migrate_or_die():
   
 def initialise(f):
   runner.initialise(f)
+
+
+def open_socket(port):
+	manager_loc = local_theatre().get_manager_loc()
+	network_locator = rpc.RPCConnector(manager_loc)
+	manager = network_locator.connect()
+	return manager.open_socket(port)
+		#return SocketReference(manager_loc, port)
+
+def connect_socket(address):
+	manager_loc = local_theatre().get_manager_loc()
+	network_locator = rpc.RPCConnector(manager_loc)
+	manager = network_locator.connect()
+	return manager.connect_socket(address)

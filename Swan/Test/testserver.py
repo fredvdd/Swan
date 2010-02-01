@@ -3,25 +3,54 @@ import BaseHTTPServer
 from Actors.keywords import *
 from Swan.server import Server
 from Host.static import local_theatre
-#from time import sleep
+from time import sleep
 
 class RootActor(LocalActor):
 	
 	def birth(self):
-		TestActor(8080)
-		TestActor(8090)
+		ServerActor(8080)
+		#ClientActor(8080)
 
-class TestActor(LocalActor):
-	
+class ServerActor(LocalActor):
+		
 	def birth(self, port):
 		print local_theatre().gethostname()
 		local_theatre().say_hello()
-		opened = local_theatre().open_port(port)
-		if opened:
-			conn_id = local_theatre().accept_port(port)
-			print "%s -> %s" % (opened, conn_id)
-			local_theatre().close_port(port)
-			print local_theatre().read_port(conn_id, 4)
+		opened = open_socket(port)
+		print opened
+		print opened.getsockname()
+		ClientActor(opened)
+		new_socket = opened.accept()
+		opened.close()
+		# a = ''
+		# while 1:
+		# 	print "Reading data..."
+		# 	data = new_socket.recv(1024)
+		# 	if not data: break
+		# 	a += data
+		# print a
+		
+		
+class ClientActor(LocalActor):
+	
+	def birth(self, port):
+		print local_theatre().gethostname()
+		sleep(1)
+		port.getsockname()
+		# local_theatre().say_hello()
+		# sleep(1)
+		# print "Connecting"
+		# sock = connect_socket(('localhost', port))
+		# print sock
+		#opened = open_socket(port)
+		#print opened
+		#print opened.getsockname()
+		#print opened.accept()
+		#if opened:
+		#	conn_id = local_theatre().accept_port(port)
+		#	print "%s -> %s" % (opened, conn_id)
+		#	local_theatre().close_port(port)
+		#	print local_theatre().read_port(conn_id, 4)
 		
 
 def start():
