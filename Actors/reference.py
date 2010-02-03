@@ -2,6 +2,7 @@ from threadlocal import thread_local
 from Util.exceptions import AbstractMethodException
 from Actors.encapsulatedmethodcall import EncapsulatedMethodCall
 from Host.static import log
+from Util.Network import rpc
 
 class Reference(object):
 
@@ -37,6 +38,3 @@ class Reference(object):
 
   def __str__(self):
     return "Actor with id \"%s\"" % self.actor_id
-    
-
-

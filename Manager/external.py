@@ -147,13 +147,15 @@ class ManagerExternalInterface(object):
 
   def open_socket(self, port):
     log.debug(self, "Opening port %d" % port)
-    ref = self.__socket_store.open_socket(port)
-    print ref
-    return ref
+    return self.__socket_store.open_socket(port)
 
   def connect_socket(self, address):
 	log.debug(self, "Connecting to %s:%d" % address)
 	return self.__socket_store.connect_socket(address)
+	
+  def close_socket(self, socket):
+	log.debug(self,"Closing socket %s" % socket)
+	self.__socket_store.get_socket(socket).close()
 	
   def socket_call(self, socket, method, *args, **kwds):
     log.debug(self,"Call %s on socket %s with args %s " % (method, socket, args))

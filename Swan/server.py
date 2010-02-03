@@ -24,7 +24,6 @@ class Server(LocalActor):
 			try:
 				rsock, client_address = self.socket.accept()
 				self.handlers[current].handle(wrapper(rsock), client_address)
-				print "sent!"
 				current = (current + 1) % len(self.handlers)
 			except KeyboardInterrupt:
 				self.socket.flush()
@@ -68,8 +67,8 @@ class InitialHandler(SocketActor, BaseHTTPRequestHandler):
 		print "request handled\n***********************************"
 	
 	def handle_request(self):
-		
-		callback('write', (self.fh.echo(self.rfile.readline()), self.wfile))
+		self.fh.echo(self.rfile.readline(), self)
+#		callback('write', self.fh.echo(self.rfile.readline()))
 #		self.raw_requestline = self.rfile.readline()
 #		if not self.raw_requestline:
 #			self.close_connection = 1
@@ -83,8 +82,10 @@ class InitialHandler(SocketActor, BaseHTTPRequestHandler):
 #			response += "<dt><b>%s</b></dt><dd>%s</dd>" % (header, self.headers.get(header, ""))
 #		self.wfile.write(self.fh.get(self.path))
 #		self.wfile.flush()
-	def write(self, the_str, outfile):
-		outfile.write(the_str)
+
+	def write(self, the_str):
+		print "hello"
+		self.wfile.write(the_str)
 	
 	def log_message(self, format, *args):
 		pass
@@ -98,6 +99,7 @@ class SlowEchoHandler(MobileActor):
 	def echo(self, request, writer):
 		print "echoing request: %s" % request
 		writer.write(request)
+		print "echo sent"
 		return	
 
 class wrapper:

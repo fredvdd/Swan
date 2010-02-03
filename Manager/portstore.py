@@ -1,6 +1,7 @@
 import threading
 from Util.Network import socketutil, rpc
 from Manager.managerlog import log
+from Messaging.structures import MessageQueue, ResultMap
 
 class SocketStore(object):
 	def __init__(self, overlay):
@@ -23,6 +24,7 @@ class SocketStore(object):
 	def open_socket(self, port):
 		opened_socket = socketutil.server_socket(port)
 		socket_id = "%s:%d" % opened_socket.getsockname()
+		log.debug(self, "Opened socket %d" % port)
 		StageSocket(opened_socket, socket_id, self, self.__overlay.here).start()
 		return socketutil.SocketReference(self.__overlay.here, socket_id)
 	
@@ -36,90 +38,85 @@ class SocketStore(object):
 
 class StageSocket(threading.Thread):
 
-	def __init__(self, socket, socket_id, store, manager_loc):
+	def __init__(self, sock, socket_id, store, manager_loc):
 		threading.Thread.__init__(self)
 		log.debug(self, "New socket at %s" % socket_id)
-		self.__socket = socket
-		self.__id = socket_id
-		self.__store = store
-		self.__store.add_socket(socket_id, self)
-		self.__exit = False
-		self.__manager_loc = manager_loc
-		self.access = threading.Lock()
-		self.control = threading.Lock()
-		self.action = threading.Lock()
-		self.result = threading.Lock()
-		self.action.acquire()
-		self.result.acquire()
+		self.sock = sock
+		self.wfile = sock.makefile('w')
+		self.rfile = sock.makefile('r')
+		self.id = socket_id
+		self.store = store
+		self.store.add_socket(socket_id, self)
+		self.exit = False
+		self.manager_loc = manager_loc
+		self.messages = MessageQueue()
+		self.results = ResultMap()
+		self.m_id = 0
 
 	def run(self):
-		while self.action.acquire(True):
-			if self.__exit:
-				break
+		while not self.exit:
 			try:
-				self.control.acquire()
-				print "Do call %s on socket with %s and %s " % (self.method, self.args, self.kwds)
-				method = getattr(self.__socket,self.method)
-				self.__the_result = method(*self.args, **self.kwds)
-				self.control.release()
-				self.result.release()
+				request = self.messages.get_next()
+				if self.exit:
+					break
+				mid, target, method, args, kwds = request
+				print "Call %s on %s with %s and %s" % (method, target, args, kwds)
+				meth = getattr(target, method)
+				result = meth(*args, **kwds)
+				print result				
+				#special cases
+				if method == 'makefile':
+					print "Called makefile %s, %s, %s" % (self.manager_loc, self.id, args[0][0])
+					result = socketutil.SocketFileReference(self.manager_loc, self.id, args[0][0])
+					print "three"
+				elif method == 'accept':
+					socket_id = "%s:%d" % result[1]
+					StageSocket(result[0], socket_id, self.store, self.manager_loc).start()
+					result = socketutil.SocketReference(self.manager_loc, socket_id)
+				print result
+				self.results.add(SocketResult(mid,result))
 			except Exception, e:
 				log.debug(self, e)
-				if(self.__exit):
-					self.__the_result = "Socket closed"
-					self.control.release()
-					self.result.release()
+				if self.exit:
 					break
+		print "Socket %s run out" % self.id
 		
 	def __getattr__(self, name):
 		if self.__dict__.has_key(name):
 			return self.__dict__[name]
-		else:
+		elif name.find(':') > 0:
 			print "No attr %s for listening socket" % name
-			if hasattr(self.__socket, name):
+			targetname, method = name.split(':')
+			target = getattr(self, targetname)
+			if hasattr(target, method):
 				print "But it's socket has %s" % name
-				return SocketMethodCall(self, name, (self.access, self.action, self.control, self.result), self.__store, self.__manager_loc)
-		
-	def setCall(self, method, *args, **kwds):
-		self.method = method
-		self.args = args
-		self.kwds = kwds
-		
-	def getResult(self):
-		return self.__the_result
+				self.m_id = self.m_id + 1
+				return SocketRequest(self, self.m_id, target, method)
 		
 	def close(self):
-		print "Closing socket %s" % self.__id
-		self.__exit = True
-		self.__socket.close()
-		self.action.release()
-		self.__store.remove_socket(self.__id)
-		print "Closed %s" % self.__id 
+		print "Closing socket %s" % self.id
+		self.exit = True
+		self.messages.add(None)
+		self.sock.close()
+		self.store.remove_socket(self.id)
+		print "Closed %s" % self.id 
 	
-class SocketMethodCall(object):
+class SocketRequest(object):
 		
-	def __init__(self, socket, method, locks, store, manager_loc):
+	def __init__(self, socket, mid, target, method):
 		self.socket = socket
+		self.mid = mid
+		self.target = target
 		self.method = method
-		self.access, self.action, self.control, self.result = locks
-		self.store = store
-		self.manager_loc = manager_loc
 		
 	def __call__(self, *args, **kwds):
-		print "Calling %s with %s and %s" % (self.method, args, kwds) 
-		self.access.acquire()
-		print "Got access"
-		self.socket.setCall(self.method, *args, **kwds)
-		self.action.release()
-		self.result.acquire()
-		self.control.acquire()
-		res = self.socket.getResult()#getattr(self.__socket, self.method)(*self.args, **self.kwds)
-		if self.method == 'accept':
-			print "Accepted socket is %s %s" % res
-			socket_id = "%s:%d" % res[1]
-			StageSocket(res[0], "%s:%d" % res[1], self.store, self.manager_loc)
-			return socketutil.SocketReference(self.manager_loc, socket_id)
-		#print "Got %s:%d" % res
-		self.control.release()
-		self.access.release()
-		return res
+		print "Calling %s with %s and %s" % (self.method, args, kwds)
+		self.socket.messages.add((self.mid, self.target, self.method, args, kwds))
+		print "Request made"
+		return self.socket.results.wait_for(self.mid).result
+		
+class SocketResult(object):
+	
+	def __init__(self, mid, result):
+		self.id = mid
+		self.result = result

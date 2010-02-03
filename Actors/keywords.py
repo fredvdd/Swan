@@ -19,21 +19,6 @@ def migrate_to(remote_theatre):
     friend.migrate_to(remote_theatre)
   actor.migrate_to(remote_theatre)
 
-class SocketActor(ActorState):
-  def __new__(cls, *args, **kwds):
-    #print "Making SocketActor"
-    type = cls.__name__
-    module_name = inspect.getmodule(cls).__name__
-    actor_id = local_theatre().create_actor(cls, module_name, type, args, kwds)
-    #local_theatre().__local_store.get_ref(actor_id).__set_socket(args[1])
-    return Reference(actor_id)
-
-  def __set_socket(self, sock):
-	self.sock = sock
-
-  def get_socket(self):
-	return self.socket
-
 class LocalSingletonActor(ActorState):
   def __new__(cls, *args, **kwds):
     actor = Actor(local_theatre())

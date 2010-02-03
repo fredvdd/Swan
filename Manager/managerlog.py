@@ -6,5 +6,5 @@ import sys
 if  sys.platform == 'symbian_s60':
   file_loc = 'E:\\python\\manager.log'
 else: 
-  file_loc = '/tmp/manager.log'
+  file_loc = '/Users/fred/Swan/manager.log'
 log = FileLogger(file_loc) 

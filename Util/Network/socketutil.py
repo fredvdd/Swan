@@ -17,16 +17,14 @@ def client_socket():
 class SocketReference(object):
 
 	def __init__(self, manager_loc, socket_id):
-		print "SocketReference for %s" % socket_id
 		self.__manager_loc = manager_loc
 		self.__socket_id = socket_id
 
 	def __getattr__(self, name):
-		print "Get Atrribute %s" % name
 		if self.__dict__.has_key(name):
 			return self.__dict__[name]
 		else:
-			return SocketRequest(self.__socket_id, self.__manager_loc, name)
+			return SocketRequest(self.__socket_id, self.__manager_loc, "sock:%s" % name)
 			
 	def __deepcopy__(self, memo):
 		return SocketReference(self.__manager_loc, self.__socket_id)
@@ -35,13 +33,38 @@ class SocketReference(object):
 		return (self.__manager_loc, self.__socket_id)
 
 	def __setstate__(self, state):
-		self.__manager_loc = state[0]
-		self.__socket_id = state[1]
-
+		self.__manager_loc, self.__socket_id = state
+		
 	def __str__(self):
 	 return "Reference for %s on %s" % (self.__socket_id, self.__manager_loc)
+	
+class SocketFileReference(object):
+	
+	def __init__(self, manager_loc, socket_id, mode):
+		print "one"
+		self.manager_loc = manager_loc
+		self.socket_id = socket_id
+		self.mode = mode
+		print "two"
+	
+	def __getattr__(self, name):
+		if self.__dict__.has_key(name):
+			return self.__dict__[name]
+		else:
+			return SocketRequest(self.socket_id, self.manager_loc, "%sfile:%s" % (self.mode, name))
+			
+	def __deepcopy__(self, memo):
+		return SocketFileReference(self.manager_loc, self.socket_id, self.mode)
 
+	def __getstate__(self):
+		return (self.manager_loc, self.socket_id, self.mode)
 
+	def __setstate__(self, state):
+		self.manager_loc, self.socket_id, self.mode = state
+				
+	def __str__(self):
+		return "File reference for %s on %s (mode %s)" % (self.socket_id, self.manager_loc, self.mode)
+		
 class SocketRequest(object):
 
 	def __init__(self, socket_id, manager_loc, method):
@@ -52,4 +75,7 @@ class SocketRequest(object):
 	def __call__(self, *args, **kwds):
 		network_locator = rpc.RPCConnector(self.manager_loc)
 		manager = network_locator.connect()
-		return manager.socket_call(self.socket_id, self.method,  *args, **kwds)
+		if self.method == 'sock:close':
+			manager.close_socket(self.socket_id)
+		else:
+			return manager.socket_call(self.socket_id, self.method,  *args, **kwds)

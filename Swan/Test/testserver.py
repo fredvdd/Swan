@@ -19,16 +19,21 @@ class ServerActor(LocalActor):
 		opened = open_socket(port)
 		print opened
 		print opened.getsockname()
-		ClientActor(opened)
+		#ClientActor(opened)
 		new_socket = opened.accept()
+		print new_socket
+		rfile = new_socket.makefile('r')
+		wfile = new_socket.makefile('w')
+		print wfile
+		while 1:
+			print "Reading data..."
+			data = rfile.readline()
+		 	if not data or len(data.strip()) < 1: break
+			wfile.write("Echo: %s" % data)
+			wfile.flush()
+		new_socket.close()
 		opened.close()
-		# a = ''
-		# while 1:
-		# 	print "Reading data..."
-		# 	data = new_socket.recv(1024)
-		# 	if not data: break
-		# 	a += data
-		# print a
+		print "Done"
 		
 		
 class ClientActor(LocalActor):

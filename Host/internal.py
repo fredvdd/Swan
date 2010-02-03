@@ -56,6 +56,9 @@ class TheatreInternalInterface(object):
   def gethostname(self):
     return self.__hostname
   
+  def getport(self):
+	return self.__port
+  
   def get_pool(self, cls):
     ports = self.__shared_data.port_range
     type = cls.__name__
@@ -299,25 +302,5 @@ class TheatreInternalInterface(object):
   def say_hello(self):
 	print "Hello"
 	
-  def open_port(self, port):
-	network_locator = rpc.RPCConnector(self.__manager_loc)
-	manager = network_locator.connect()
-	return manager.open_port(port)
-
-  def close_port(self, port):
-	network_locator = rpc.RPCConnector(self.__manager_loc)
-	manager = network_locator.connect()
-	return manager.close_port(port)
-
-  def accept_port(self, port):
-	network_locator = rpc.RPCConnector(self.__manager_loc)
-	manager = network_locator.connect()
-	return manager.accept_port(port)
-
-  def read_port(self, port):
-	network_locator = rpc.RPCConnector(self.__manager_loc)
-	manager = network_locator.connect()
-	return manager.read_port(port)
-	
-  def write_port(self, port, content):
-	pass
+  def get_manager_loc(self):
+	return self.__manager_loc
