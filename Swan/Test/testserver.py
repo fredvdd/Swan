@@ -59,8 +59,8 @@ class ClientActor(LocalActor):
 		
 
 def start():
-    #Server("localhost", 8080)
-	RootActor()
+    Server("localhost", 8080)
+	#RootActor()
 
 if __name__ == '__main__':
     initialise(start)

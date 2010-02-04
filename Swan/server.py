@@ -6,28 +6,23 @@ from BaseHTTPServer import BaseHTTPRequestHandler
 
 
 class Server(LocalActor):
-	
+	"""Root actor with accepting socket, simply accepts 
+connections and passes them on"""
 	def birth(self, address, port):
 		print "SWAN Server starting..."
-		self.handlers = [InitialHandler(n) for n in range(0,1)]
-		
-		#Init socket
-		self.request_version = 'HTTP/1.1'
-		self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		self.socket.bind((address, port))
-		self.socket.listen(5)
+		self.handlers = [RequestHandler(n) for n in range(0,1)]
+		self.sock = open_socket(port)
 		self.accept()
 		
 	def accept(self):
 	 	current = 0
 		while 1:
 			try:
-				rsock, client_address = self.socket.accept()
-				self.handlers[current].handle(wrapper(rsock), client_address)
+				client_sock = self.sock.accept()
+				self.handlers[current].handle(client_sock)
 				current = (current + 1) % len(self.handlers)
 			except KeyboardInterrupt:
-				self.socket.flush()
-				self.socket.close()
+				self.sock.close()
 
 class TestResponseMixin(object):
 
@@ -42,32 +37,32 @@ class TestResponseMixin(object):
 		outfile.flush()
 		#outfile.close()
 
-class InitialHandler(SocketActor, BaseHTTPRequestHandler):
+class RequestHandler(LocalActor, BaseHTTPRequestHandler):
+	"""Reads request method, resource and headers"""
 
 	def birth(self, num):
 		self.num = num
 		self.default_request_version = "HTTP/1.1"
-		self.fh = SlowEchoHandler()#FileHandler("/Users/fred/Documents/Year1/CogRob")
+		self.fh = EchoHandler()#FileHandler("/Users/fred/Documents/Year1/CogRob")
 		
-	def handle(self, sock, client_address):
-		self.socket = sock.get_content()
-		self.client_address = client_address
+	def handle(self, sock):
+		self.socket = sock
+		self.client_address = sock.getsockname()
 		print "Handling %s, %d" % self.client_address
-		
 		self.rfile = self.socket.makefile('rb',-1)
 		self.wfile = self.socket.makefile('wb',0)
 		
-		self.close_connection = 0
+		#self.close_connection = 0
 		self.handle_request()
-		while not self.close_connection:
-			self.handle_request()
+		#while not self.close_connection:
+		#	self.handle_request()
 		
-		self.finish()
-		self.socket.close()
-		print "request handled\n***********************************"
+		#self.finish()
+		#self.socket.close()
+		#print "request handled\n***********************************"
 	
 	def handle_request(self):
-		self.fh.echo(self.rfile.readline(), self)
+		self.fh.echo(self.rfile, self.wfile)
 #		callback('write', self.fh.echo(self.rfile.readline()))
 #		self.raw_requestline = self.rfile.readline()
 #		if not self.raw_requestline:
@@ -91,23 +86,19 @@ class InitialHandler(SocketActor, BaseHTTPRequestHandler):
 		pass
 
 
-class SlowEchoHandler(MobileActor):
+class EchoHandler(MobileActor):
 
 	def birth(self):
 		pass
 
-	def echo(self, request, writer):
-		print "echoing request: %s" % request
-		writer.write(request)
+	def echo(self, rfile, wfile):
+		while True:
+			request = rfile.readline()
+			print "Echo: %s" % request
+			if not request or len(request.strip()) < 1:
+				break
+			wfile.write(request)
+			wfile.flush()
+		wfile.close()
 		print "echo sent"
 		return	
-
-class wrapper:
-	def __init__(self, content):
-		self.content = content
-
-	def __deepcopy__(self, memo):
-		return wrapper(self.content)
-
-	def get_content(self):
-		return self.content
