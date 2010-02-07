@@ -62,34 +62,31 @@ class StageSocket(threading.Thread):
 				mid, target, method, args, kwds = request
 				print "Call %s on %s with %s and %s" % (method, target, args, kwds)
 				meth = getattr(target, method)
-				result = meth(*args, **kwds)
-				print result				
+				result = meth(*args, **kwds)	
 				#special cases
 				if method == 'makefile':
-					print "Called makefile %s, %s, %s" % (self.manager_loc, self.id, args[0][0])
+					#print "Called makefile %s, %s, %s" % (self.manager_loc, self.id, args[0][0])
 					result = socketutil.SocketFileReference(self.manager_loc, self.id, args[0][0])
-					print "three"
 				elif method == 'accept':
 					socket_id = "%s:%d" % result[1]
 					StageSocket(result[0], socket_id, self.store, self.manager_loc).start()
 					result = socketutil.SocketReference(self.manager_loc, socket_id)
-				print result
 				self.results.add(SocketResult(mid,result))
 			except Exception, e:
 				log.debug(self, e)
 				if self.exit:
 					break
-		print "Socket %s run out" % self.id
+		#print "Socket %s run out" % self.id
 		
 	def __getattr__(self, name):
 		if self.__dict__.has_key(name):
 			return self.__dict__[name]
 		elif name.find(':') > 0:
-			print "No attr %s for listening socket" % name
+			#print "No attr %s for listening socket" % name
 			targetname, method = name.split(':')
 			target = getattr(self, targetname)
 			if hasattr(target, method):
-				print "But it's socket has %s" % name
+				#print "But it's socket has %s" % name
 				self.m_id = self.m_id + 1
 				return SocketRequest(self, self.m_id, target, method)
 		
@@ -99,7 +96,7 @@ class StageSocket(threading.Thread):
 		self.messages.add(None)
 		self.sock.close()
 		self.store.remove_socket(self.id)
-		print "Closed %s" % self.id 
+		log.debug(self, "Closed socket %s" % self.id) 
 	
 class SocketRequest(object):
 		
@@ -110,9 +107,9 @@ class SocketRequest(object):
 		self.method = method
 		
 	def __call__(self, *args, **kwds):
-		print "Calling %s with %s and %s" % (self.method, args, kwds)
+		#print "Calling %s with %s and %s" % (self.method, args, kwds)
 		self.socket.messages.add((self.mid, self.target, self.method, args, kwds))
-		print "Request made"
+		#print "Request made"
 		return self.socket.results.wait_for(self.mid).result
 		
 class SocketResult(object):

@@ -41,11 +41,9 @@ class SocketReference(object):
 class SocketFileReference(object):
 	
 	def __init__(self, manager_loc, socket_id, mode):
-		print "one"
 		self.manager_loc = manager_loc
 		self.socket_id = socket_id
 		self.mode = mode
-		print "two"
 	
 	def __getattr__(self, name):
 		if self.__dict__.has_key(name):

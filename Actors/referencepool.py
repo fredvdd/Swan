@@ -1,8 +1,10 @@
 from threadlocal import thread_local
 from Util.exceptions import AbstractMethodException
 from Actors.encapsulatedpoolcall import EncapsulatedPoolCall
+from Actors.reference import Reference
 from Host.static import log
 from threading import Timer
+from itertools import cycle
 
 class ReferencePool(object):
 
@@ -12,6 +14,7 @@ class ReferencePool(object):
     return EncapsulatedPoolCall(self.actor_ids, name, self)
 
   def __init__(self, actor_ids):
+    self.actors = cycle([Reference(id) for id in actor_ids])
     self.actor_ids = actor_ids
     
   def __deepcopy__(self, memo):
@@ -32,5 +35,5 @@ class ReferencePool(object):
       str = str + actor_id + " "
     return str
 
-
-
+  def one(self):
+    return self.actors.next()
