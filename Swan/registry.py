@@ -4,16 +4,16 @@ import re
 class Registry(StaticActor):
 	
 	def birth(self):
-		self.register = {} #regex -> handler [specifier]
+		self.registry = {} #regex -> handler [specifier]
+
+	def print_registry(self):
+		print self.registry
 	
 	def lookup(self, key):
-		for (regex, resp) in self.register:
+		for regex, resp in self.registry.iteritems():
 			match = regex.match(key)
 			if match:
-				if len(resp) > 1:
-					return (resp[0],resp[1],match.groupdict())
-				else:
-					return (resp, None, match.groupdict())
+				return (resp[0],resp[1],match.groupdict())
 	
-	def register(self, key, value):
-		self.register[re.compile(key)] = value
+	def register(self, key, value, specifier=None):
+		self.registry[re.compile(key)] = (value, None)
