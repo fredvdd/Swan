@@ -15,7 +15,7 @@ class Launcher(LocalActor):
 		#create registry pool
 		registries = get_pool(Registry)
 	
-		registries.register([('/', echoes) for n in registries.actor_ids])
+		registries.register(['/' for n in registries.actor_ids], [echoes for n in registries.actor_ids])
 		
 		#launch server with registry pool
 		Server("localhost", 8080, registries)
@@ -26,7 +26,7 @@ class EchoHandler(StaticActor):
 		print "Creating echo handler"
 	
 	def respond(self, method, specifier, params, headers, request):
-		request.writer.write("%s %s %s %s" % (method, specifier, params, headers))
+		request['writer'].write("%s %s %s %s" % (method, specifier, params, headers))
 
 	def echo(self, rfile, wfile):
 		while True:
