@@ -1,6 +1,6 @@
 from threadlocal import thread_local
 from Util.exceptions import AbstractMethodException
-from Actors.encapsulatedpoolcall import EncapsulatedPoolCall
+from Actors.encapsulatedpoolcall import EncapsulatedPoolCall, EncapsulatedRepeatedPoolCall
 from Actors.reference import Reference
 from Host.static import log
 from threading import Timer
@@ -37,3 +37,14 @@ class ReferencePool(object):
 
   def one(self):
     return self.actors.next()
+
+  def all(self):
+    return RepeatedReferencePool(self.actor_ids)
+	
+class RepeatedReferencePool(ReferencePool):
+  
+  def __getattr__(self, name):
+    if self.__dict__.has_key(name):
+      return self.__dict__[name]
+    return EncapsulatedRepeatedPoolCall(self.actor_ids, name)
+	

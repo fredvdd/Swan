@@ -71,6 +71,10 @@ class StageSocket(threading.Thread):
 					socket_id = "%s:%d" % result[1]
 					StageSocket(result[0], socket_id, self.store, self.manager_loc).start()
 					result = socketutil.SocketReference(self.manager_loc, socket_id)
+				elif method == 'close':
+					self.exit = True
+					self.store.remove_socket(self.id)
+					log.debug(self, "Socket %s closing" % self.id)
 				self.results.add(SocketResult(mid,result))
 			except Exception, e:
 				log.debug(self, e)

@@ -61,8 +61,8 @@ class RequestHandler(LocalActor, BaseHTTPRequestHandler, TestResponseMixin):
 		self.handle_request()
 		while not self.close_connection:
 			self.handle_request()
-		self.finish()
-		self.socket.close()
+		#self.finish()
+		#self.socket.close()
 	
 	def handle_request(self):
 		self.raw_requestline = self.rfile.readline()
@@ -73,9 +73,23 @@ class RequestHandler(LocalActor, BaseHTTPRequestHandler, TestResponseMixin):
 			return
 		#got command, path, and request_version and headers
 		request = dict(client=self.socket,reader=self.rfile,writer=self.wfile)
-		(responder_pool, specifier, params) = self.registries.one().lookup(self.path)
-		responder_pool.one().respond(self.command, specifier, params, self.headers, request)
+		(responder_pool, specifier, params) = one(self.registries).lookup(self.path)
+		one(responder_pool).respond(self.command, specifier, params, self.headers, request)
 
 	def log_message(self, format, *args):
 		pass
+		
+class Request(object):
+	
+	def __init__(self, socket, rfile, wfile):
+		self.socket = socket
+		self.wfile = wfile
+		self.rfile = rfile
+		
+	def finish(self):
+		self.wfile.flush()
+		self.socket.close()
+		
+	def respond(self, string):
+		self.wfile.write(string)
 		

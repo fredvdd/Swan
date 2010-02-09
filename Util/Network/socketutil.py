@@ -73,7 +73,4 @@ class SocketRequest(object):
 	def __call__(self, *args, **kwds):
 		network_locator = rpc.RPCConnector(self.manager_loc)
 		manager = network_locator.connect()
-		if self.method == 'sock:close':
-			manager.close_socket(self.socket_id)
-		else:
-			return manager.socket_call(self.socket_id, self.method,  *args, **kwds)
+		return manager.socket_call(self.socket_id, self.method,  *args, **kwds)

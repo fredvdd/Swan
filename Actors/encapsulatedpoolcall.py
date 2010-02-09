@@ -32,3 +32,16 @@ class EncapsulatedPoolCall(object):
         self.__ref_to_ref.actor_ids[i] = actor_id
     return results
 
+class EncapsulatedRepeatedPoolCall(object):
+	
+  def __init__(self, sources, method):
+    self.__sources = sources
+    self.__method = method
+  
+  def __call__(self, *args, **kwds):
+	results = list()
+	actor = thread_local.actor
+	for source in self.__sources:
+		(val, actor_id) = actor.sendmessage(source, self.__method, args, kwds)
+		results.append(val)
+	return results

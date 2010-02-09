@@ -127,7 +127,13 @@ def find_all_types(type):
   
 def get_pool(type):
   return thread_local.actor.get_pool(type)
-  
+
+def one(pool):
+  return pool.one()
+
+def all(pool):
+  return pool.all()  
+
 def update_method(actor, method_ref):
   name = method_ref.func_name
   code = method_ref.func_code

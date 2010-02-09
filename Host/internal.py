@@ -59,7 +59,7 @@ class TheatreInternalInterface(object):
   def getport(self):
 	return self.__port
   
-  def get_pool(self, cls):
+  def get_pool(self, cls, *args, **kwds):
     ports = self.__shared_data.port_range
     type = cls.__name__
     actor_ids = list()
@@ -68,11 +68,11 @@ class TheatreInternalInterface(object):
       module_name = inspect.getmodule(cls).__name__
       for port in ports:
         if port == self.__port:
-          actor_id = self.create_actor(cls, module_name, type, [], dict())
+          actor_id = self.create_actor(cls, module_name, type, args, kwds)
         else:
           network_locator = rpc.RPCConnector(ids.ip_from_loc(self.__hostname) + ':' + str(port))
           core = network_locator.connect()
-          actor_id = core.create_actor(cls, module_name, type, [], dict())
+          actor_id = core.create_actor(cls, module_name, type, args, kwds)
           core.disconnect()
         actor_ids.append(actor_id)
     else:
