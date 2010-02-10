@@ -125,8 +125,8 @@ def find_type(type):
 def find_all_types(type):
   return thread_local.actor.find_all_types(type)
   
-def get_pool(type):
-  return thread_local.actor.get_pool(type)
+def get_pool(type, *args, **kwds):
+  return thread_local.actor.get_pool(type, *args, **kwds)
 
 def one(pool):
   return pool.one()

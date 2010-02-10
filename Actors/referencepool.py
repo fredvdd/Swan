@@ -25,6 +25,7 @@ class ReferencePool(object):
 
   def __setstate__(self, state):
     self.actor_ids = state[0]
+    self.actors = cycle([Reference(id) for id in self.actor_ids])
     
   # def __hash__(self):
   #   return self.actor_id.__hash__()

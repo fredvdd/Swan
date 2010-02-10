@@ -2,12 +2,11 @@ import threading
 import random
 from managerlog import log
 from overlay import Overlay
-from portstore import SocketStore
 from Util.Network import socketutil
 
 class ManagerExternalInterface(object):
   
-  def __init__(self, overlay, name_store, type_store, migration_store, script_store):
+  def __init__(self, overlay, name_store, type_store, migration_store, script_store, socket_store):
     self.__locations = dict()
     self.__overlay = overlay
     self.__name_store = name_store
@@ -17,7 +16,7 @@ class ManagerExternalInterface(object):
     self.__location_lock = threading.Lock()
     self.__theatre_lock = threading.Lock()
     self.__theatres = []
-    self.__socket_store = SocketStore(overlay)
+    self.__socket_store = socket_store
     log.debug(self, 'initialised')
 
   def addnode(self, id, location):
@@ -154,6 +153,9 @@ class ManagerExternalInterface(object):
 	return self.__socket_store.connect_socket(address)
 	
   def socket_call(self, socket, method, *args, **kwds):
-    log.debug(self,"Call %s on socket %s with args %s " % (method, socket, args))
-    return getattr(self.__socket_store.get_socket(socket), method)(*args, **kwds)
+    log.debug(self,"Call %s on socket %s" % (method, socket))
+    try:
+        return getattr(self.__socket_store.get_socket(socket), method)(*args, **kwds)
+    except KeyError as e:
+        log.error(self, "Exception %s calling %s on socket %s" % (e, method, socket))
     #return "Goodbye"

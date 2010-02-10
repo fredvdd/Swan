@@ -7,25 +7,34 @@ class SocketStore(object):
 	def __init__(self, overlay):
 		self.__overlay = overlay
 		self.__socket_lock = threading.Lock()
+		self.sockets_condition = threading.Condition()
 		self.sockets = {}
 	
 	def add_socket(self, socket_id, handler):
 		with self.__socket_lock:
 			self.sockets[socket_id] = handler
-			print "Socket store is %s" % self.sockets
+			log.debug(self, "Socket store is %s" % self.sockets.keys())
 			
 	def remove_socket(self, socket_id):
-		del self.sockets[socket_id]
+		with self.__socket_lock:
+			del self.sockets[socket_id]
 		
 	def get_socket(self, socket_id):
 		with self.__socket_lock:
-			return self.sockets[socket_id]
+			try:
+				return self.sockets[socket_id]
+			except KeyError as e:
+				log.error(self, "Error finding socket %s" % socket_id)
+				raise e
 		
 	def open_socket(self, port):
+		if self.sockets.has_key("0.0.0.0:%d"%port):#bit naughty...
+			return socketutil.SocketReference(self.__overlay.here, "0.0.0.0:%d"%port)
 		opened_socket = socketutil.server_socket(port)
 		socket_id = "%s:%d" % opened_socket.getsockname()
 		log.debug(self, "Opened socket %d" % port)
 		StageSocket(opened_socket, socket_id, self, self.__overlay.here).start()
+		print "Returning socket reference for %s" % socket_id
 		return socketutil.SocketReference(self.__overlay.here, socket_id)
 	
 	def connect_socket(self, address):
@@ -60,7 +69,7 @@ class StageSocket(threading.Thread):
 				if self.exit:
 					break
 				mid, target, method, args, kwds = request
-				print "Call %s on %s with %s and %s" % (method, target, args, kwds)
+				#print "Call %s on %s with %s and %s" % (method, target, args, kwds)
 				meth = getattr(target, method)
 				result = meth(*args, **kwds)	
 				#special cases

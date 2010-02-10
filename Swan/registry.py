@@ -2,9 +2,10 @@ from Actors.keywords import *
 import re
 
 class Registry(StaticActor):
+	"""Dictionary for handlers for a URL"""
 	
 	def birth(self):
-		self.registry = {} #regex -> handler [specifier]
+		self.registry = {} #regex -> (handler, [specifier])
 
 	def print_registry(self):
 		print self.registry

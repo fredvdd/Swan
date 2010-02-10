@@ -84,9 +84,9 @@ class Actor(object):
     actor_ids = self.theatre.find_all_types(type)
     return map(Reference, actor_ids)
     
-  def get_pool(self, cls):
+  def get_pool(self, cls, *args, **kwds):
     print "getting pool " + cls.__name__
-    return self.theatre.get_pool(cls)
+    return self.theatre.get_pool(cls, *args, **kwds)
 
   
   def migrate_to(self, address):

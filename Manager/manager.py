@@ -9,6 +9,7 @@ from namestore import NameStore
 from typestore import TypeStore
 from migrationstore import MigrationStore
 from scriptstore import ScriptStore
+from portstore import SocketStore
 import Visualizer.client as vis
 import socket
 import sys
@@ -26,9 +27,11 @@ class Manager(signalutil.Runner):
     self.type_store = TypeStore(self.overlay)
     self.migration_store = MigrationStore(self.overlay)
     self.script_store = ScriptStore(self.overlay)
+    self.socket_store = SocketStore(self.overlay)
         
   def begin(self):
-    loc = ManagerExternalInterface(self.overlay, self.name_store, self.type_store, self.migration_store, self.script_store)
+    loc = ManagerExternalInterface(self.overlay, self.name_store, self.type_store, 
+				self.migration_store, self.script_store, self.socket_store)
     port = self.port
     while (port < self.port + 10):
       if self.takeport(port, loc):
