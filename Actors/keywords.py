@@ -11,6 +11,7 @@ from Util.Network import rpc
 from Util import picklecode
 import pickle
 import Util.ids as ids
+import threading
 
 def migrate_to(remote_theatre):
   actor = thread_local.actor
@@ -188,3 +189,9 @@ def connect_socket(address):
 	network_locator = rpc.RPCConnector(manager_loc)
 	manager = network_locator.connect()
 	return manager.connect_socket(address)
+	
+def close_socket(socket):
+	manager_loc = local_theatre().get_manager_loc()
+	network_locator = rpc.RPCConnector(manager_loc)
+	manager = network_locator.connect()
+	manager.close_socket(socket.socket_id)

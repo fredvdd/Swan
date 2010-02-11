@@ -152,10 +152,19 @@ class ManagerExternalInterface(object):
 	log.debug(self, "Connecting to %s:%d" % address)
 	return self.__socket_store.connect_socket(address)
 	
+  def close_socket(self, socket_id):
+	log.debug(self, "Closing socket %s" % socket_id)
+	self.__socket_store.get_socket(socket_id).close()
+	
   def socket_call(self, socket, method, *args, **kwds):
     log.debug(self,"Call %s on socket %s" % (method, socket))
     try:
-        return getattr(self.__socket_store.get_socket(socket), method)(*args, **kwds)
+      meth = getattr(self.__socket_store.get_socket(socket), method)
+      if meth:
+        res = meth(*args, **kwds)
+        return res
+      else:
+        log.error(self, "No such method %s for socket" % method)
     except KeyError as e:
-        log.error(self, "Exception %s calling %s on socket %s" % (e, method, socket))
+      log.error(self, "Exception %s calling %s on socket %s" % (e, method, socket))
     #return "Goodbye"

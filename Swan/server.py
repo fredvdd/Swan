@@ -2,7 +2,7 @@ from Actors.keywords import *
 from Swan.request import Request
 from BaseHTTPServer import BaseHTTPRequestHandler
 from itertools import cycle
-import socket
+from threading import Timer
 
 class Server(LocalActor):
 	"""Root actor with accepting socket, simply accepts 
@@ -47,31 +47,19 @@ class RequestHandler(LocalActor, BaseHTTPRequestHandler):
 	
 	def handle_request(self, sock, rfile, wfile):
 		self.rfile = rfile
-		#self.raw_requestline = self.rfile.readline()
-		sock.settimeout(5.0)
-		buffers = []
-		data = None
-		while data != "\n":
-			data = sock.recv(1)
-			if not data:
-				break
-			buffers.append(data)
-		sock.settimeout(None)
-		self.raw_requestline = "".join(buffers)
-		if not self.raw_requestline:
-			self.close_connection(sock, wfile)
-		if not self.parse_request():
-			self.close_connection(sock, wfile)
+		sock.settimeout(2.0)
+		self.raw_requestline = self.rfile.readline()
+		sock.settimeout(None) #disable timeouts
+		if not self.raw_requestline or not self.parse_request():
+			print "Closing connection"
+			wfile.flush()
+			sock.close()
+			return
 		#got command, path, and request_version and headers
 		command, path, headers = (self.command, self.path, self.headers)
 		(responder_pool, specifier, params) = one(self.registries).lookup(path)
 		request = Request(self, sock, rfile, wfile, path,  headers, params)
 		one(responder_pool).respond(command, specifier, request)
-	
-	def close_connection(self, sock, wfile):
-		print "Closing connection"
-		wfile.flush()
-		sock.close()
 
 	def log_message(self, format, *args):
 		pass

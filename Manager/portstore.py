@@ -85,11 +85,13 @@ class StageSocket(threading.Thread):
 					self.store.remove_socket(self.id)
 					log.debug(self, "Socket %s closing" % self.id)
 				self.results.add(SocketResult(mid,result))
-			except Exception, e:
-				log.debug(self, e)
+			except Exception as e:
+				log.debug(self, "Socket exception: %s" % e)
 				if self.exit:
 					break
-		#print "Socket %s run out" % self.id
+				else:
+					self.results.add(SocketResult(mid,None))
+		log.debug(self,"Socket %s run out" % self.id)
 		
 	def __getattr__(self, name):
 		if self.__dict__.has_key(name):

@@ -17,26 +17,26 @@ def client_socket():
 class SocketReference(object):
 
 	def __init__(self, manager_loc, socket_id):
-		self.__manager_loc = manager_loc
-		self.__socket_id = socket_id
+		self.manager_loc = manager_loc
+		self.socket_id = socket_id
 
 	def __getattr__(self, name):
 		if self.__dict__.has_key(name):
 			return self.__dict__[name]
 		else:
-			return SocketRequest(self.__socket_id, self.__manager_loc, "sock:%s" % name)
+			return SocketRequest(self.socket_id, self.manager_loc, "sock:%s" % name)
 			
 	def __deepcopy__(self, memo):
-		return SocketReference(self.__manager_loc, self.__socket_id)
+		return SocketReference(self.manager_loc, self.socket_id)
 
 	def __getstate__(self):
-		return (self.__manager_loc, self.__socket_id)
+		return (self.manager_loc, self.socket_id)
 
 	def __setstate__(self, state):
-		self.__manager_loc, self.__socket_id = state
+		self.manager_loc, self.socket_id = state
 		
 	def __str__(self):
-	 return "Reference for %s on %s" % (self.__socket_id, self.__manager_loc)
+	 return "Reference for %s on %s" % (self.socket_id, self.manager_loc)
 	
 class SocketFileReference(object):
 	
@@ -73,4 +73,6 @@ class SocketRequest(object):
 	def __call__(self, *args, **kwds):
 		network_locator = rpc.RPCConnector(self.manager_loc)
 		manager = network_locator.connect()
-		return manager.socket_call(self.socket_id, self.method,  *args, **kwds)
+		res = manager.socket_call(self.socket_id, self.method,  *args, **kwds)
+		res = None if res == "NONE" else res
+		return res
