@@ -54,8 +54,8 @@ class Actor(object):
   def has_result(self, request_id):
     return self.state.messages.has_result(request_id)
 
-  def add_callback(self, method, request_id):
-    message = self.state.messages.add_callback(method, request_id)      
+  def add_callback(self, method, request_id, *args, **kwds):
+    message = self.state.messages.add_callback(method, request_id, *args, **kwds)      
   
   
   def die(self):

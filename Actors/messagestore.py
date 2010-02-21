@@ -19,21 +19,21 @@ class MessageStore(object):
   def get_next_request(self):
     return self.__requests.get_next()
 
-  def __add_callback_result(self, method, result):
-    message = CallbackMessage(method, result)
+  def __add_callback_result(self, method, result, *args, **kwds):
+    message = CallbackMessage(method, result, *args, **kwds)
     self.__requests.add(message) 
  
-  def __request_callback(self, request_id, method):
-    self.__callbacks[request_id] = method
+  def __request_callback(self, request_id, method, *args, **kwds):
+    self.__callbacks[request_id] = (method, args, kwds)
  
-  def add_callback(self, method, request_id):
+  def add_callback(self, method, request_id, *args, **kwds):
     message = self.__responses.get_async(request_id)
     if message:
       # We already have the result, add the result into the incoming
       # queue.
-      self.__add_callback_result(method, message.response)
+      self.__add_callback_result(method, message.response, *args, **kwds)
     else:
-      self.__request_callback(request_id, method) 
+      self.__request_callback(request_id, method, *args, **kwds) 
 
   def wait_for_result(self, request_id):
     return self.__responses.wait_for(request_id).response
@@ -54,9 +54,10 @@ class MessageStore(object):
         self.__requests.add(message)
     elif type(message) == ResponseMessage:
       if (self.__callbacks.has_key(message.id)):
-        meth = self.__callbacks[message.id]
+        meth, args, kwds = self.__callbacks[message.id]
+        #meth = self.__callbacks[message.id]
         del self.__callbacks[message.id]
-        self.__add_callback_result(meth, message.response)
+        self.__add_callback_result(meth, message.response, *args, **kwds)
       else:
         self.__responses.add(message)
     elif type(message) == ActorJoinMessage:

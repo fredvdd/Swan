@@ -48,7 +48,7 @@ class Messenger(object):
        if not success:
          log.warn(self, 'sending message to %s failed retrying (message was: %s)' % (actor_id, message))
          new_actor_id = local_theatre().get_migration(actor_id)
-         if new_actor_id:
+         if new_actor_id and not new_actor_id == 'NONE':
            actor_id = new_actor_id
            actor_location = ids.loc(actor_id)
          retries += 1 

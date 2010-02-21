@@ -30,9 +30,11 @@ class ResponseMessage(object):
 # - A callback for a result has been requested
 # - The result arrives
 class CallbackMessage(object):
-  def __init__(self, name, result):
+  def __init__(self, name, result, *args, **kwds):
     self.name = name
     self.result = result
+    self.args = args
+    self.kwds = kwds
   def __str__(self):
     return 'CallbackMessage, name = %s, result = %s' % (self.name, self.result)
 

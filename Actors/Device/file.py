@@ -2,14 +2,12 @@ from Actors.keywords import *
 
 class File(MobileActor):
 
-	def birth(self, filepath, mode='r'):
-		self.filepath = filepath
-		self.mode = mode
+	def birth(self):
+		pass
 		
-	
-	def read(self, size=-1):
+	def read(self, filepath, size=-1):
 		try:
-			self.file = open(self.filepath, self.mode)
+			self.file = open(filepath, 'r')
 			res = self.file.read(size)
 			self.file.close()
 			return res

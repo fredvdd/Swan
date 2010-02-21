@@ -4,6 +4,7 @@ from actor import Actor
 from Host import runner
 from Host.static import local_theatre
 from Actors.reference import Reference
+from Actors.referencepool import ReferencePool
 import types
 from result import Result
 import inspect
@@ -101,8 +102,8 @@ class StaticActor(NetworkActor):
     NetworkActor.__init__(self, *args)
   
 
-def callback(meth, result):
-  thread_local.actor.add_callback(meth, result.result_id)
+def callback(meth, result, *args, **kwds):
+  thread_local.actor.add_callback(meth, result.result_id, *args, **kwds)
 
 def ready(result):
   return thread_local.actor.has_result(result.result_id)
@@ -128,6 +129,9 @@ def find_all_types(type):
   
 def get_pool(type, *args, **kwds):
   return thread_local.actor.get_pool(type, *args, **kwds)
+
+def pool(ids):
+  return ReferencePool(ids)
 
 def one(pool):
   return pool.one()

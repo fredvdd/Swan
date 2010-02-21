@@ -81,7 +81,7 @@ class TheatreInternalInterface(object):
         if port == self.__port:
           actor_ids.extend(self.__local_store.get_types(type))
         else:
-          network_locator = rpc.RPCConnector(ids.ip_from_loc(self.__hostname) + str(port))
+          network_locator = rpc.RPCConnector(ids.ip_from_loc(self.__hostname) + ":" + str(port))
           core = network_locator.connect()
           core_actor_ids = core.get_types(type)
           core.disconnect()

@@ -45,7 +45,9 @@ class ActorRunner(threading.Thread):
 
   def __process_callback(self, callback):
     method = self.__actor.state.get_method(callback.name)
-    self.__callmethod(method, [callback.result], dict())
+    args = [callback.result]
+    args.extend(callback.args)
+    self.__callmethod(method, args, callback.kwds)
     
   def __process_actor_join(self, actor_join):
     method = self.__actor.state.get_method(actor_join.name)
