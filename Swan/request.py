@@ -22,7 +22,7 @@ class Request(object):
 		if self.headers.has_key('Connection') and self.headers['Connection'] == 'close':
 			self.socket.close()
 		else:
-			print "not closing connection"
+			#print "not closing connection"
 			self.parent.handle_request(self.socket, self.rfile, self.wfile)
 		
 	def respond(self, string):

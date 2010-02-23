@@ -1,5 +1,6 @@
 from Actors.keywords import *
 from Swan.request import Request
+from Swan.static import log
 from BaseHTTPServer import BaseHTTPRequestHandler
 from itertools import cycle
 from threading import Timer
@@ -8,7 +9,7 @@ class Server(LocalActor):
 	"""Root actor with accepting socket, simply accepts 
 connections and passes them on"""
 	def birth(self, address, port, resources):
-		print "SWAN Server starting..."
+		log.debug(self, "SWAN Server starting...")
 		self.resources = resources #resource dictionary pool
 		self.handlers = []
 		self.add_handler(1)
@@ -24,7 +25,7 @@ connections and passes them on"""
 				self.sock.close()
 				
 	def accept_connection(self):
-		print "Waiting for connection"
+		log.debug(self, "Accepting connection")
 		self.handler_cycle.next().handle(self.sock.accept())
 		
 	def add_handler(self, count = 1):
@@ -39,7 +40,7 @@ class RequestHandler(LocalActor, BaseHTTPRequestHandler):
 		self.registries = registries
 		
 	def handle(self, sock):
-		print "Handling %s, %d" % sock.getpeername()
+		log.debug(self, "Conection from %s:%d" % sock.getpeername())
 		rfile = sock.makefile('rb',-1)
 		wfile = sock.makefile('wb',0)
 		
@@ -51,7 +52,7 @@ class RequestHandler(LocalActor, BaseHTTPRequestHandler):
 		self.raw_requestline = self.rfile.readline()
 		sock.settimeout(None) #disable timeouts
 		if not self.raw_requestline or not self.parse_request():
-			print "Closing connection"
+			log.debug(self, "Closing connection to %s:%d" % sock.getpeername())
 			wfile.flush()
 			sock.close()
 			return
