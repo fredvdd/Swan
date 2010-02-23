@@ -36,6 +36,12 @@ class Request(object):
 	
 	def set_header(self, key, value):
 		self.wfile.write("%s:%s\n" % (key,value))
+		return self
+	
+	def set_headers(self, header_dict):
+		for k, v in header_dict:
+			self.set_header(self, k, v)
+		return self
 	
 	def end_headers(self):
 		self.wfile.write("\r\n")

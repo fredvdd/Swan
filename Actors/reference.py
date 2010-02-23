@@ -38,3 +38,7 @@ class Reference(object):
 
   def __str__(self):
     return "Actor with id \"%s\"" % self.actor_id
+
+  def __iter__(self):
+	res = EncapsulatedMethodCall(self.actor_id, 'iterator', self)()
+	return res.__iter__()
