@@ -1,4 +1,5 @@
 from Actors.keywords import *
+from Swan.static import log
 import re
 
 class Registry(StaticActor):
@@ -18,5 +19,5 @@ class Registry(StaticActor):
 				return (resp[0],resp[1],match.groupdict())
 		return (self.default_handlers, None, dict())
 	
-	def register(self, key, value, specifier=None):
-		self.registry[re.compile(key)] = (value, None)
+	def register(self, pattern, handler, specifier=None):
+		self.registry[re.compile(pattern)] = (handler, specifier)

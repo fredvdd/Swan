@@ -16,23 +16,36 @@ class Request(object):
 		
 	def __str__(self):
 		return "request for %s" % self.path
+	
+	def start_response(self):
+		return Response(self, self.wfile, )
 		
-	def done(self):
-		self.wfile.flush()
+	def try_repeat(self):
 		if self.headers.has_key('Connection') and self.headers['Connection'] == 'close':
 			self.socket.close()
 		else:
 			#print "not closing connection"
 			self.parent.handle_request(self.socket, self.rfile, self.wfile)
+
+class Response(object):
+	
+	def __init__(self, partner, wfile):
+		self.partner = partner
+		self.wfile = wfile
+
+	def done(self):
+		self.wfile.flush()
+		self.partner.try_repeat()
 		
-	def respond(self, string):
+	def send(self, string):
 		self.wfile.write(string)
+		return self
 	
 	def set_status(self, code):
 		name, message = BaseHTTPRequestHandler.responses[code]
 		self.wfile.write("HTTP/1.1 %s %s\n" % (code, name))
 		self.date_header()
-		#self.set_header()
+		return self
 	
 	def set_header(self, key, value):
 		self.wfile.write("%s:%s\n" % (key,value))
@@ -40,11 +53,12 @@ class Request(object):
 	
 	def set_headers(self, header_dict):
 		for k, v in header_dict:
-			self.set_header(self, k, v)
+			self.set_header(k, v)
 		return self
 	
 	def end_headers(self):
 		self.wfile.write("\r\n")
+		return self
 		
 	def date_header(self):
 		timestamp = time()
@@ -59,11 +73,8 @@ class Request(object):
 	monthname = [None, 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
 	                 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 	
-	def respond_error(self, error_code, message):
+	def send_error(self, error_code, message):
 		name, more = BaseHTTPRequestHandler.responses[error_code]
-		self.wfile.write("HTTP/1.1 %s %s" % (error_code, name))
-		self.set_header("Content-type", "text/html")
-		self.set_header("Connection", "close")
 		content = 	"""<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
 		<html><head>
 		<title>%(code)d %(name)s</title>
@@ -75,8 +86,11 @@ class Request(object):
 		<address>Swan/0.1 (OSX) Server at localhost on port 8080</address>
 		</body></html>
 		"""	% {'code': error_code, 'name' : name, 'more': more, 'message': message}
-		self.set_header("Content-Length", len(content))
-		self.end_headers()
-		self.respond(content)
-		self.done()
+		
+		self.wfile.write("HTTP/1.1 %s %s" % (error_code, name))
+		self.set_headers([
+			("Content-type", "text/html"),
+			("Connection", "close"),
+			("Content-Length", len(content))
+		]).end_headers().send(content).done()
 		
