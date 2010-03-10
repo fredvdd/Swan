@@ -6,16 +6,12 @@ import sys
 
 def translate(modulename, outstream):
 	
-	try:
 		ast = parseFile(modulename)
 		v = SwanVisitor(outstream)
 		w = ExampleASTVisitor()
 		w.VERBOSE = 1
 		walk(ast, v, v)
-	
-	except Exception as e:
-		raise e
-
+		print
 
 if __name__ == '__main__':
 	modulename = sys.argv[1]

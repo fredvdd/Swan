@@ -1,2 +1,2 @@
-for x in y:
-	pass
+a = 4
+b = 5

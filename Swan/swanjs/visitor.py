@@ -5,148 +5,163 @@ class SwanVisitor(ASTVisitor):
 	def __init__(self, outstream):
 		ASTVisitor.__init__(self)
 		self.out = outstream
+		self.opdict = {	'<' : '__lt__', '<=':'__le__', '==':'__eq__', 
+					'!=':'__ne__', '>':'__gt__', '>=':'__ge__', 
+					'is':'is_', 'is not':'is_not', 'in':'__contains__',
+					'+=':'__iadd__', '&=':'iand', '/=':'idiv', '//=':'ifloordiv',
+					'<<=':'__ilshift__', '%=':'__imod__', '*=':'__imul__',
+					'|=':'__ior__','**=':'__ipow__', '>>=':'__irshift__','-=':'__isub__',
+					'^=':'__ixor__'}
 	
+	def binOp(self, node, op):
+		left, right = node.left, node.right
+		self.dispatch(left)
+		self.out.write(".__"+op+"__(")
+		self.dispatch(right)
+		self.out.write(")")
+		
 	#Arithmetic ops
 	#The ** operator
 	def visitPower(self, node):
 		print "Visiting a Power node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		self.binOp(node, "pow")
 			
 	#The / operator	
 	def visitDiv(self, node):
 		print "Visiting a Div node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		self.binOp(node, "div")
 	
 	#The % operator 
 	def visitMod(self, node):
 		print "Visiting a Mod node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		self.binOp(node, "mod")
 			
 	#The // operator
 	def visitFloorDiv(self, node):
 		print "Visiting a FloorDiv node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		self.binOp(node, "floordiv")
 	
 	#The * operator
 	def visitMul(self, node):
 		print "Visiting a Mul node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		self.binOp(node, "mul")
 	
 	#The + operator
 	def visitAdd(self, node):
 		print "Visiting a Add node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		self.binOp(node, "add")
 			
     #The - operator
 	def visitSub(self, node):
 		print "Visiting a Sub node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		self.binOp(node, "sub")
 
 	#As in a = +b
 	def visitUnaryAdd(self, node):
 		print "Visiting a UnaryAdd node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		self.dispatch(node.expr)
+		self.out.write(".__pos__()")
 
 	#As in a = -b		
 	def visitUnarySub(self, node):
 		print "Visiting a UnarySub node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
-	
-	#Boolean ops : not, or, and	and comparison	
-	def visitNot(self, node):
-		print "Visiting a Not node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
-
-	def visitOr(self, node):
-		print "Visiting a Or node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
-			
-	def visitAnd(self, node):
-		print "Visiting a And node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
-			
-	def visitCompare(self, node):
-		print "Visiting a Compare node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
-	
+		self.dispatch(expr)
+		self.out.write(".__neg__()")
 			
 	#Bitwise ops &, |, ^, ~, << and >>
 	def visitBitand(self, node):
 		print "Visiting a Bitand node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		self.binOp(node, "and")
 
 	def visitBitor(self, node):
 		print "Visiting a Bitor node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		self.binOp(node, "or")
 
 	def visitBitxor(self, node):
 		print "Visiting a Bitxor node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
-			
-	def visitInvert(self, node):
-		print "Visiting a Invert node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		self.binOp(node, "xor")
 			
 	def visitLeftShift(self, node):
 		print "Visiting a LeftShift node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		self.binOp(node, "lshift")
 
 	def visitRightShift(self, node):
 		print "Visiting a RightShift node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
-			
-	#Assignment		
-	def visitAssAttr(self, node):
-		print "Visiting a AssAttr node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		self.binOp(node, "rshift")
+		
+	def visitInvert(self, node):
+		print "Visiting a Invert node"
+		self.dispatch(node.expr)
+		self.out.write(".__inv__()")
 
-		for n in node.getChildNodes():
-			self.dispatch(n)
+	#Boolean ops : not, or, and	and comparison	
+	def visitNot(self, node):
+		print "Visiting a Not node"
+		self.out.write("!")
+		self.dispatch(node.expr)
 
-	def visitAssList(self, node):
-		print "Visiting a AssList node"
-		for n in node.getChildNodes():
+	def visitOr(self, node):
+		print "Visiting a Or node"
+		for n in node.nodes:
 			self.dispatch(n)
+			self.out.write("||")
 
-	def visitAssName(self, node):
-		print "Visiting a AssName node"
-		for n in node.getChildNodes():
+	def visitAnd(self, node):
+		print "Visiting a And node"
+		for n in node.nodes:
 			self.dispatch(n)
+			self.out.write("&&")
 
-	def visitAssTuple(self, node):
-		print "Visiting a AssTuple node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+	def visitCompare(self, node):
+		self.dispatch(node.expr)
+		for op,expr in node.ops:
+			self.out.write("."+self.opdict[op]+"(")
+			self.dispatch(expr)
+			self.out.write(")")
 
+	#Assignment	
 	def visitAssign(self, node):
-		print "Visiting a Assign node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		for n in node.nodes:
+			self.dispatch(n, node.expr)
+
+	def visitAssName(self, node, expr):
+		self.out.write(node.name)
+		if expr:
+			self.out.write(" = ")
+			self.dispatch(expr)
+			
+	def visitAssAttr(self, node, expr):
+		self.dispatch(node.expr)
+		self.out.write("."+node.attrname)
+		if expr:
+			self.out.write(" = ")
+			self.dispatch(expr)
+
+	def visitAssList(self, node, expr):
+		self.out.write("lambda = ")
+		self.dispatch(expr) #should evaluate to a array
+		self.out.write("\n")
+		i = 0
+		for x in node.nodes:
+			self.dispatch(x, None) 
+			self.out.write(" = lambda[" + str(i) +"]\n")
+			i += 1
+
+	def visitAssTuple(self, node, expr):
+		self.out.write("lambda = ")
+		self.dispatch(expr) #should evaluate to a array
+		self.out.write("\n")
+		i = 0
+		for x in node.nodes:
+			self.dispatch(x, None) 
+			self.out.write(" = lambda[" + str(i) +"]\n")
+			i += 1
 
 	def visitAugAssign(self, node):
-		print "Visiting a AugAssign node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		self.dispatch(node.node)
+		self.out.write("." + self.opdict[node.op] + "(")
+		self.dispatch(node.expr)
+		self.out.write(")")
 	
 	def visitAssert(self, node):
 		print "Visiting a Assert node"
@@ -156,23 +171,23 @@ class SwanVisitor(ASTVisitor):
 	# doing `object` is apparently repr(object)
 	def visitBackquote(self, node):
 		print "Visiting a Backquote node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		self.dispatch(node.expr)
+		self.out.write(".__repr__()")
 
 	def visitCallFunc(self, node):
 		print "Visiting a CallFunc node"
 		for n in node.getChildNodes():
 			self.dispatch(n)
 
+	#Need to check out Javascript inheritance?
 	def visitClass(self, node):
 		print "Visiting a Class node"
 		for n in node.getChildNodes():
 			self.dispatch(n)
 			
 	def visitGetattr(self, node):
-		print "Visiting a Getattr node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		self.dispatch(node.expr)
+		self.out.write("." + node.attrname)
 	
 	def visitLambda(self, node):
 		print "Visiting a Lambda node"
@@ -188,11 +203,6 @@ class SwanVisitor(ASTVisitor):
 		print "Visiting a Return node"
 		for n in node.getChildNodes():
 			self.dispatch(n)
-
-	def visitConst(self, node):
-		print "Visiting a Const node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
 			
 	def visitExpression(self, node):
 		print "Visiting a Expression node"
@@ -201,9 +211,9 @@ class SwanVisitor(ASTVisitor):
 			
 	#A statement
 	def visitStmt(self, node):
-		print "Visiting a Stmt node"
 		for n in node.getChildNodes():
 			self.dispatch(n)
+			self.out.write("\n")
 
 	def visitDecorators(self, node):
 		print "Visiting a Decorators node"
@@ -221,31 +231,51 @@ class SwanVisitor(ASTVisitor):
 			self.dispatch(n)
 
 	def visitIf(self, node):
-		print "Visiting a If node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		test, stmts = node.tests[0]
+		self.out.write("if(")
+		self.dispatch(test)
+		self.out.write("){\n")
+		self.dispatch(stmts)
+		self.out.write("} ")
+		for test, stmts in node.tests[1:]:#handles the elifs
+			self.out.write("else if(")
+			self.dispatch(test)
+			self.out.write("){\n")
+			self.dispatch(stmts)
+			self.out.write("\n}")
+		if node.else_:
+			self.out.write(" else {\n")
+			self.dispatch(node.else_)
+			self.out.write("}\n")
 
 	#Loops
 	def visitFor(self, node):
-		print "Visiting a For node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		self.out.write('lambda = ')
+		self.dispatch(node.list)
+		self.out.write("\nfor (x in lambda){\n")
+		self.dispatch(node.assign, None)
+		self.out.write(" = lambda[x]\n")
+		self.dispatch(node.body)
+		self.out.write("}\n")
+		if node.else_:
+			self.dispatch(node.else_)
 			
 	def visitBreak(self, node):
-		print "Visiting a Break node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		self.out.write("break")
 
 	def visitContinue(self, node):
-		print "Visiting a Continue node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		self.out.write("continue")
 
 	def visitWhile(self, node):
-		print "Visiting a While node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
-
+		self.out.write("while(")
+		self.dispatch(node.test)
+		self.out.write("){\n")
+		self.dispatch(node.body)
+		self.out.write("}\n")
+		if node.else_:
+			self.dispatch(node.else_)
+	
+	#Not sure there's an equivalence for this in JS
 	def visitYield(self, node):
 		print "Visiting a Yield node"
 		for n in node.getChildNodes():
@@ -293,14 +323,15 @@ class SwanVisitor(ASTVisitor):
 			self.dispatch(n)
 
 	def visitName(self, node):
-		print "Visiting a Name node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		self.out.write(node.name)
 
 	def visitKeyword(self, node):
 		print "Visiting a Keyword node"
 		for n in node.getChildNodes():
 			self.dispatch(n)
+
+	def visitConst(self, node):
+		self.out.write("%s" % node.value)
 
 	def visitDict(self, node):
 		print "Visiting a Dict node"
@@ -313,9 +344,10 @@ class SwanVisitor(ASTVisitor):
 			self.dispatch(n)
 
 	def visitList(self, node):
-		print "Visiting a List node"
-		for n in node.getChildNodes():
+		self.out.write("[")
+		for n in node.nodes:
 			self.dispatch(n)
+		self.out.write("]")
 
 	def visitListComp(self, node):
 		print "Visiting a ListComp node"
@@ -334,9 +366,7 @@ class SwanVisitor(ASTVisitor):
 
 	#Pass
 	def visitPass(self, node):
-		print "Visiting a Pass node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		self.out.write("//no-op pass")
 
 	#Print with no \n
 	def visitPrint(self, node):
