@@ -195,9 +195,16 @@ class SwanVisitor(ASTVisitor):
 			self.dispatch(n)
 			
 	def visitFunction(self, node):
-		print "Visiting a Function node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		print "Visiting a Function node %s, %s, %s, %s" % (node.name, node.argnames, node.defaults, node.flags)
+		self.out.write("function " + node.name + "(")
+		if node.argnames:
+			for name in node.argnames[:-1]:		
+				self.out.write(name + ",")
+			self.out.write(node.argnames[-1])
+		self.out.write("){\n")
+		self.dispatch(node.code)
+		self.out.write("};")
+		
 			
 	def visitReturn(self, node):
 		print "Visiting a Return node"
@@ -323,6 +330,8 @@ class SwanVisitor(ASTVisitor):
 			self.dispatch(n)
 
 	def visitName(self, node):
+		if node.name in ["True", "False"]:
+			node.name = node.name.lower()
 		self.out.write(node.name)
 
 	def visitKeyword(self, node):
