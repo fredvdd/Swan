@@ -17,6 +17,9 @@ def withKwdargs(arg1, **kwdargs):
 def withAll(arg1, arg2, arg3=2, *varargs, **kwdargs):
 	pass
 
+def return_(a, b):
+	return a * b
+
 #simple()
 #withArg(5)
 #withDef(5)

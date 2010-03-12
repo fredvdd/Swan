@@ -12,6 +12,8 @@ class SwanVisitor(ASTVisitor):
 					'<<=':'__ilshift__', '%=':'__imod__', '*=':'__imul__',
 					'|=':'__ior__','**=':'__ipow__', '>>=':'__irshift__','-=':'__isub__',
 					'^=':'__ixor__'}
+		self.funcVargs = 4
+		self.funcKargs = 8
 	
 	def binOp(self, node, op):
 		left, right = node.left, node.right
@@ -23,91 +25,73 @@ class SwanVisitor(ASTVisitor):
 	#Arithmetic ops
 	#The ** operator
 	def visitPower(self, node):
-		print "Visiting a Power node"
 		self.binOp(node, "pow")
 			
 	#The / operator	
 	def visitDiv(self, node):
-		print "Visiting a Div node"
 		self.binOp(node, "div")
 	
 	#The % operator 
 	def visitMod(self, node):
-		print "Visiting a Mod node"
 		self.binOp(node, "mod")
 			
 	#The // operator
 	def visitFloorDiv(self, node):
-		print "Visiting a FloorDiv node"
 		self.binOp(node, "floordiv")
 	
 	#The * operator
 	def visitMul(self, node):
-		print "Visiting a Mul node"
 		self.binOp(node, "mul")
 	
 	#The + operator
 	def visitAdd(self, node):
-		print "Visiting a Add node"
 		self.binOp(node, "add")
 			
     #The - operator
 	def visitSub(self, node):
-		print "Visiting a Sub node"
 		self.binOp(node, "sub")
 
 	#As in a = +b
 	def visitUnaryAdd(self, node):
-		print "Visiting a UnaryAdd node"
 		self.dispatch(node.expr)
 		self.out.write(".__pos__()")
 
 	#As in a = -b		
 	def visitUnarySub(self, node):
-		print "Visiting a UnarySub node"
 		self.dispatch(expr)
 		self.out.write(".__neg__()")
 			
 	#Bitwise ops &, |, ^, ~, << and >>
 	def visitBitand(self, node):
-		print "Visiting a Bitand node"
 		self.binOp(node, "and")
 
 	def visitBitor(self, node):
-		print "Visiting a Bitor node"
 		self.binOp(node, "or")
 
 	def visitBitxor(self, node):
-		print "Visiting a Bitxor node"
 		self.binOp(node, "xor")
 			
 	def visitLeftShift(self, node):
-		print "Visiting a LeftShift node"
 		self.binOp(node, "lshift")
 
 	def visitRightShift(self, node):
-		print "Visiting a RightShift node"
 		self.binOp(node, "rshift")
 		
 	def visitInvert(self, node):
-		print "Visiting a Invert node"
 		self.dispatch(node.expr)
 		self.out.write(".__inv__()")
 
 	#Boolean ops : not, or, and	and comparison	
 	def visitNot(self, node):
-		print "Visiting a Not node"
 		self.out.write("!")
 		self.dispatch(node.expr)
 
 	def visitOr(self, node):
-		print "Visiting a Or node"
 		for n in node.nodes:
 			self.dispatch(n)
 			self.out.write("||")
 
 	def visitAnd(self, node):
-		print "Visiting a And node"
 		for n in node.nodes:
 			self.dispatch(n)
 			self.out.write("&&")
@@ -195,21 +179,26 @@ class SwanVisitor(ASTVisitor):
 			self.dispatch(n)
 			
 	def visitFunction(self, node):
-		print "Visiting a Function node %s, %s, %s, %s" % (node.name, node.argnames, node.defaults, node.flags)
 		self.out.write("function " + node.name + "(")
 		if node.argnames:
 			for name in node.argnames[:-1]:		
 				self.out.write(name + ",")
 			self.out.write(node.argnames[-1])
 		self.out.write("){\n")
+		if (node.flags & self.funcVargs) and (node.flags & self.funcKargs):
+			self.out.write(node.argnames[-2]+"=arguments.slice("+str(len(node.argnames)-2)+",-1);\n")
+		elif node.flags & self.funcVargs:
+			self.out.write(node.argnames[-2]+"=arguments.slice("+str(len(node.argnames)-1)+");\n")
+		elif node.flags & self.funcKargs:
+			pass #may need to do something here. may not.
 		self.dispatch(node.code)
 		self.out.write("};")
 		
 			
 	def visitReturn(self, node):
-		print "Visiting a Return node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		self.out.write("return ")
+		self.dispatch(node.value)
+		self.out.write(";")
 			
 	def visitExpression(self, node):
 		print "Visiting a Expression node"
