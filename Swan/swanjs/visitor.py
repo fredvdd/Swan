@@ -1,4 +1,5 @@
 from compiler.visitor import ASTVisitor
+from compiler.ast import Keyword
 
 class SwanVisitor(ASTVisitor):
 	
@@ -14,6 +15,19 @@ class SwanVisitor(ASTVisitor):
 					'^=':'__ixor__'}
 		self.funcVargs = 4
 		self.funcKargs = 8
+		self.freeVarName = "lambda" #Python keyword so won't be in use
+		self.freeVar = 1 #Free var index
+		self.freeUsedVars = []
+		
+	def takeVar(self):
+		if len(self.freeUsedVars) > 0:
+			return self.freeUsedVars.pop(0)
+		r = self.freeVarName + str(self.freeVar)
+		self.freeVar += 1
+		return r
+	
+	def releaseVar(self, var):
+		self.freeUsedVars.append(var)
 	
 	def binOp(self, node, op):
 		left, right = node.left, node.right
@@ -87,14 +101,16 @@ class SwanVisitor(ASTVisitor):
 		self.dispatch(node.expr)
 
 	def visitOr(self, node):
-		for n in node.nodes:
+		for n in node.nodes[:-1]:
 			self.dispatch(n)
 			self.out.write("||")
+		self.dispatch(node.nodes[-1])
 
 	def visitAnd(self, node):
-		for n in node.nodes:
+		for n in node.nodes[:-1]:
 			self.dispatch(n)
 			self.out.write("&&")
+		self.dispatch(node.nodes[-1])
 
 	def visitCompare(self, node):
 		self.dispatch(node.expr)
@@ -108,20 +124,20 @@ class SwanVisitor(ASTVisitor):
 		for n in node.nodes:
 			self.dispatch(n, node.expr)
 
-	def visitAssName(self, node, expr):
+	def visitAssName(self, node, expr=None):
 		self.out.write(node.name)
 		if expr:
 			self.out.write(" = ")
-			self.dispatch(expr)
+			self.dispatch(expr, node.name)
 			
-	def visitAssAttr(self, node, expr):
+	def visitAssAttr(self, node, expr=None):
 		self.dispatch(node.expr)
 		self.out.write("."+node.attrname)
 		if expr:
 			self.out.write(" = ")
 			self.dispatch(expr)
 
-	def visitAssList(self, node, expr):
+	def visitAssList(self, node, expr=None):
 		self.out.write("lambda = ")
 		self.dispatch(expr) #should evaluate to a array
 		self.out.write("\n")
@@ -131,7 +147,7 @@ class SwanVisitor(ASTVisitor):
 			self.out.write(" = lambda[" + str(i) +"]\n")
 			i += 1
 
-	def visitAssTuple(self, node, expr):
+	def visitAssTuple(self, node, expr=None):
 		self.out.write("lambda = ")
 		self.dispatch(expr) #should evaluate to a array
 		self.out.write("\n")
@@ -147,6 +163,7 @@ class SwanVisitor(ASTVisitor):
 		self.dispatch(node.expr)
 		self.out.write(")")
 	
+	#Needs a special function...
 	def visitAssert(self, node):
 		print "Visiting a Assert node"
 		for n in node.getChildNodes():
@@ -154,14 +171,40 @@ class SwanVisitor(ASTVisitor):
 
 	# doing `object` is apparently repr(object)
 	def visitBackquote(self, node):
-		print "Visiting a Backquote node"
 		self.dispatch(node.expr)
 		self.out.write(".__repr__()")
 
 	def visitCallFunc(self, node):
-		print "Visiting a CallFunc node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		print "callee %s, args %s, vargs %s, kargs %s" % (node.node, node.args, node.star_args, node.dstar_args)
+		kwds = filter(lambda x:isinstance(x, Keyword), node.args)
+		if kwds:
+			taken = self.takeVar()
+			self.out.write("%s = {};\n" % taken)
+			for kwd in kwds:
+				self.dispatch(kwd, taken)
+		self.dispatch(node.node)
+		self.out.write("(")
+		nokwds = filter(lambda x:not isinstance(x, Keyword), node.args)
+		if nokwds:
+			for arg in nokwds[:-1]:
+				self.dispatch(arg)
+				self.out.write(", ")
+			self.dispatch(nokwds[-1])
+		if kwds:
+			self.out.write(", %s" % taken)
+			self.releaseVar(taken)
+		if node.star_args:
+			self.out.write(", ")
+			self.dispatch(node.star_args)
+		if node.dstar_args:
+			self.out.write(", ")
+			self.dispatch(node.dstar_args)
+		self.out.write(");\n")
+		
+	def visitKeyword(self, node, var):
+		self.out.write("%s.%s = " % (var, node.name))
+		self.dispatch(node.expr)
+		self.out.write(";\n")
 
 	#Need to check out Javascript inheritance?
 	def visitClass(self, node):
@@ -173,13 +216,16 @@ class SwanVisitor(ASTVisitor):
 		self.dispatch(node.expr)
 		self.out.write("." + node.attrname)
 	
-	def visitLambda(self, node):
-		print "Visiting a Lambda node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+	def visitLambda(self, node, assName=None):
+		self.transformFunction(node)
 			
 	def visitFunction(self, node):
-		self.out.write("function " + node.name + "(")
+		self.transformFunction(node)
+		
+	def transformFunction(self, node):
+		if hasattr(node, "name"):
+			self.out.write(node.name + " = ")
+		self.out.write("function (")
 		if node.argnames:
 			for name in node.argnames[:-1]:		
 				self.out.write(name + ",")
@@ -187,13 +233,23 @@ class SwanVisitor(ASTVisitor):
 		self.out.write("){\n")
 		if (node.flags & self.funcVargs) and (node.flags & self.funcKargs):
 			self.out.write(node.argnames[-2]+"=arguments.slice("+str(len(node.argnames)-2)+",-1);\n")
+			defaultArgs = node.argnames[:-2]
 		elif node.flags & self.funcVargs:
 			self.out.write(node.argnames[-2]+"=arguments.slice("+str(len(node.argnames)-1)+");\n")
+			defaultArgs = node.argnames[:-1]
 		elif node.flags & self.funcKargs:
-			pass #may need to do something here. may not.
+			defaultArgs = node.argnames[:-1]
+		else:
+			defaultArgs = node.argnames if len(node.argnames) > 0 else []
+		defaultArgs.reverse()
+		for arg in defaultArgs:
+			if len(node.defaults) < 1:
+				break
+			self.out.write("%s = typeof(%s) != 'undefined' ? %s : " % (arg, arg, arg))
+			self.dispatch(node.defaults.pop())
+			self.out.write(";\n")
 		self.dispatch(node.code)
 		self.out.write("};")
-		
 			
 	def visitReturn(self, node):
 		self.out.write("return ")
@@ -246,21 +302,23 @@ class SwanVisitor(ASTVisitor):
 
 	#Loops
 	def visitFor(self, node):
-		self.out.write('lambda = ')
-		self.dispatch(node.list)
-		self.out.write("\nfor (x in lambda){\n")
+		taken = self.takeVar()
+		self.out.write('%s = ' % taken)
+		self.dispatch(node.list, taken)
+		self.out.write("\nfor (x in %s){\n" % taken)
 		self.dispatch(node.assign, None)
-		self.out.write(" = lambda[x]\n")
+		self.out.write(" = %s[x]\n" % taken)
 		self.dispatch(node.body)
 		self.out.write("}\n")
 		if node.else_:
 			self.dispatch(node.else_)
+		self.releaseVar(taken)
 			
 	def visitBreak(self, node):
-		self.out.write("break")
+		self.out.write("break;")
 
 	def visitContinue(self, node):
-		self.out.write("continue")
+		self.out.write("continue;")
 
 	def visitWhile(self, node):
 		self.out.write("while(")
@@ -318,17 +376,13 @@ class SwanVisitor(ASTVisitor):
 		for n in node.getChildNodes():
 			self.dispatch(n)
 
-	def visitName(self, node):
+	def visitName(self, node, assName=None):
 		if node.name in ["True", "False"]:
 			node.name = node.name.lower()
 		self.out.write(node.name)
 
-	def visitKeyword(self, node):
-		print "Visiting a Keyword node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
 
-	def visitConst(self, node):
+	def visitConst(self, node, assName=None):
 		self.out.write("%s" % node.value)
 
 	def visitDict(self, node):
@@ -337,30 +391,49 @@ class SwanVisitor(ASTVisitor):
 			self.dispatch(n)
 
 	def visitTuple(self, node):
-		print "Visiting a Tuple node"
-		for n in node.getChildNodes():
+		self.out.write("[")
+		for n in node.nodes[:-1]:
 			self.dispatch(n)
+			self.out.write(",")
+		self.dispatch(node.nodes[-1])
+		self.out.write("]")
 
-	def visitList(self, node):
+	def visitList(self, node, assName=None):
 		self.out.write("[")
 		for n in node.nodes:
 			self.dispatch(n)
 		self.out.write("]")
 
-	def visitListComp(self, node):
-		print "Visiting a ListComp node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+	def visitListComp(self, node, assName=None):
+		#print "Visiting a ListComp node %s, %s" % (node.expr, node.quals)
+		self.out.write("[];\n")
+		for qual in node.quals[:-1]:
+			self.dispatch(qual)
+		self.dispatch(node.quals[-1], node.expr, assName)
+		self.out.write("}"*len(node.quals))
 
-	def visitListCompFor(self, node):
-		print "Visiting a ListCompFor node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+	def visitListCompFor(self, node, expr=None, assName=None):
+		#print "Visiting a ListCompFor node %s, %s, %s" % (node.assign, node.list, node.ifs)
+		taken = self.takeVar()
+		self.out.write(taken + " = ")
+		self.dispatch(node.list)
+		self.out.write("\nfor (x in %s){\n" % taken)
+		self.dispatch(node.assign)
+		self.out.write(" = %s[x];\n" % taken)
+		for if_ in node.ifs:
+			self.dispatch(if_)
+		if expr and assName:
+			self.out.write(assName +".push(")
+			self.dispatch(expr)
+			self.out.write(");\n")
+		self.out.write("}"*len(node.ifs))
+		self.releaseVar(taken)
+		
 
 	def visitListCompIf(self, node):
-		print "Visiting a ListCompIf node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		self.out.write("if(")
+		self.dispatch(node.test)
+		self.out.write("){\n")
 
 	#Pass
 	def visitPass(self, node):
@@ -392,9 +465,10 @@ class SwanVisitor(ASTVisitor):
 
 	#Dictionary/Tuple access
 	def visitSubscript(self, node):
-		print "Visiting a Subscript node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+		self.dispatch(node.expr)
+		self.out.write('["')
+		self.dispatch(node.subs[0])
+		self.out.write('"]')
 
 	#Try/exceptions
 	def visitTryExcept(self, node):

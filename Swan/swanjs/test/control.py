@@ -17,6 +17,8 @@ else:
 for x in [1,3,4]:
 	pass
 	
+for x in [3,4,5]:
+	pass
 	
 while x < 5:
 	pass
