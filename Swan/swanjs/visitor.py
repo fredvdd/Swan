@@ -120,7 +120,7 @@ class SwanVisitor(ASTVisitor):
 			self.out.write(")")
 
 	#Assignment	
-	def visitAssign(self, node):
+	def visitAssign(self, node, *args):
 		for n in node.nodes:
 			self.dispatch(n, node.expr)
 
@@ -206,20 +206,17 @@ class SwanVisitor(ASTVisitor):
 		self.dispatch(node.expr)
 		self.out.write(";\n")
 
-	#Need to check out Javascript inheritance?
-	def visitClass(self, node):
-		print "Visiting a Class node"
+	def visitDecorators(self, node):
+		print "Visiting a Decorators node"
 		for n in node.getChildNodes():
 			self.dispatch(n)
-			
-	def visitGetattr(self, node):
-		self.dispatch(node.expr)
-		self.out.write("." + node.attrname)
 	
 	def visitLambda(self, node, assName=None):
 		self.transformFunction(node)
 			
-	def visitFunction(self, node):
+	def visitFunction(self, node, classPrefix=None):
+		if classPrefix:
+			self.out.write(classPrefix)
 		self.transformFunction(node)
 		
 	def transformFunction(self, node):
@@ -255,6 +252,20 @@ class SwanVisitor(ASTVisitor):
 		self.out.write("return ")
 		self.dispatch(node.value)
 		self.out.write(";")
+
+	#Need to check out Javascript inheritance?
+	def visitClass(self, node, classPrefix=None):
+		self.out.write("function " + node.name + "(){}\n")
+		self.out.write("_="+node.name+".prototype")
+		if node.bases:
+			self.out.write("=new "+node.bases[0]+"\n")
+		else:
+			self.out.write("\n")
+		self.dispatch(node.code, "_.")
+			
+	def visitGetattr(self, node):
+		self.dispatch(node.expr)
+		self.out.write("." + node.attrname)
 			
 	def visitExpression(self, node):
 		print "Visiting a Expression node"
@@ -262,15 +273,10 @@ class SwanVisitor(ASTVisitor):
 			self.dispatch(n)
 			
 	#A statement
-	def visitStmt(self, node):
+	def visitStmt(self, node, classPrefix = None):
 		for n in node.getChildNodes():
-			self.dispatch(n)
+			self.dispatch(n, classPrefix)
 			self.out.write("\n")
-
-	def visitDecorators(self, node):
-		print "Visiting a Decorators node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
 
 	def visitDiscard(self, node):
 		print "Visiting a Discard node"
@@ -329,7 +335,7 @@ class SwanVisitor(ASTVisitor):
 		if node.else_:
 			self.dispatch(node.else_)
 	
-	#Not sure there's an equivalence for this in JS
+	#Not sure there's an equivalence for these in JS
 	def visitYield(self, node):
 		print "Visiting a Yield node"
 		for n in node.getChildNodes():
@@ -379,6 +385,8 @@ class SwanVisitor(ASTVisitor):
 	def visitName(self, node, assName=None):
 		if node.name in ["True", "False"]:
 			node.name = node.name.lower()
+		if node.name == "self":
+			node.name = "this"
 		self.out.write(node.name)
 
 
@@ -436,7 +444,7 @@ class SwanVisitor(ASTVisitor):
 		self.out.write("){\n")
 
 	#Pass
-	def visitPass(self, node):
+	def visitPass(self, node, classPrefix=None):
 		self.out.write("//no-op pass")
 
 	#Print with no \n
