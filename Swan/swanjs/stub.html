@@ -1,0 +1,194 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>
+			JS Test
+		</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<script type="text/javascript">
+//<![CDATA[
+
+len = function(l){
+	return l.length;
+}
+
+map = function(f, l){
+	r = [];
+	for(x in l){
+		r.push(f(l[x]));
+	}
+	return r;
+}
+
+range = function(sta, sto, ste){
+	ste = typeof(ste) != 'undefined' ? ste : 1;
+	if(typeof(sto) == 'undefined'){
+		sto = sta;
+		sta = 0;
+	}
+	r = []
+	for(i = sta; i < sto; i+=ste){
+		r.push(i)
+	}
+	return r;
+}
+
+str = function(a){
+	return new String(a)
+}
+
+Object.prototype.__lt__ = function(a){
+	return this.valueOf() < a
+}
+Object.prototype.__le__ = function(a){
+	return this.valueOf() <= a
+}
+Object.prototype.__eq__ = function(a){
+	return this.valueOf() == a
+}
+Object.prototype.__ne__ = function(a){
+	return this.valueOf() != a
+}
+Object.prototype.__gt__ = function(a){
+	return this.valueOf() > a
+}
+Object.prototype.__ge__ = function(a){
+	return this.valueOf() >= a
+}
+
+Number.prototype.__neg__ = function(){
+	return new Number(-this.valueOf())
+}
+
+Number.prototype.__pos__ = function(){
+	return new Number(+this.valueOf())
+}
+
+Number.prototype.__inv__ = function(){
+	return new Number(~this.valueOf())
+}
+
+Number.prototype.__pow__ = function(a){
+	return new Number(Math.pow(this.valueOf(), a))
+}
+
+Number.prototype.__div__ = function(a){
+	return new Number(this.valueOf() / a)
+}
+
+Number.prototype.__mod__ = function(a){
+	return new Number(this.valueOf() % a)
+}
+
+Number.prototype.__floordiv__ = function(a){
+	return new Number(Math.floor(this.valueOf() / a))
+}
+
+Number.prototype.__mul__ = function(a){
+	return new Number(this.valueOf() * a)
+}
+
+Number.prototype.__add__ = function(a){
+	return new Number(this.valueOf() + a)
+}
+
+Number.prototype.__sub__ = function(a){
+	return new Number(this.valueOf() - a)
+}
+
+Number.prototype.__and__ = function(a){
+	return new Number(this.valueOf() & a)
+}
+
+Number.prototype.__or__ = function(a){
+	return new Number(this.valueOf() | a)
+}
+
+Number.prototype.__xor__ = function(a){
+	return new Number(this.valueOf() ^ a)
+}
+
+Number.prototype.__iadd__ = function(a){
+	this.valueOf() += a
+}
+ Number.prototype.__iand__ = function(a){
+	this.valueOf() = this.valueOf() & a
+}
+ Number.prototype.__idiv__ = function(a){
+	this.valueOf() /= a
+}
+ Number.prototype.__ifloordiv__ = function(a){
+	this.valueOf() = Math.floor(this.value, a) 
+}
+Number.prototype.__ilshift__ = function(a){
+	this.valueOf() = this.valueOf() << a
+}
+ Number.prototype.__imod__ = function(a){
+	this.valueOf() = this.valueOf() % a
+}
+ Number.prototype.__imul__ = function(a){
+	this.valueOf() *= a
+}
+Number.prototype.__ior__ = function(a){
+	this.valueOf() = this.valueOf() | a
+}
+Number.prototype.__ipow__ = function(a){
+	this.valueOf() = Math.pow(this.value, a)
+}
+ Number.prototype.__irshift__ = function(a){
+	this.valueOf() = this.valueOf() >> a
+}
+Number.prototype.__isub__ = function(a){
+	this.valueOf() -= a
+}
+Number.prototype.__ixor__ = function(a){
+	this.valueOf() = this.valueOf() ^ a 
+}
+
+String.prototype.__add__ = function(a){
+	return new String(this.valueOf() + a)
+}
+
+String.prototype.__iadd__ = function(a){
+	this.valueOf() += a
+}
+
+String.prototype.strip = function() { return this.replace(/^\s+|\s+$/, ''); };
+
+Array.prototype.extSlice = function(start, end){
+	if(start < 0){
+		start += this.length
+	}
+	if(end < 0){
+		end += this.length
+	}
+	return this.slice(start, end)
+}
+
+Array.prototype.stepSlice = function(start, end, step){
+	r = [];
+	if(start < 0){
+		start += this.length
+	}
+	if(end <= 0){
+		end += this.length
+	}
+	for(i = start; i < end; i += step){
+		r.push(this[i]);
+	}
+	return r
+}
+
+Array.prototype.append = function(a){
+	this.push(a)
+}
+
+%%compilation%%
+
+		//]]>
+		</script>
+	</head>
+	<body>
+	</body>
+</html>

@@ -1,5 +1,5 @@
 from compiler.visitor import ASTVisitor
-from compiler.ast import Keyword, Name, Sliceobj
+from compiler.ast import Keyword, Name, Sliceobj, Dict
 from string import ascii_uppercase as capitals
 
 class SwanVisitor(ASTVisitor):
@@ -11,10 +11,10 @@ class SwanVisitor(ASTVisitor):
 		self.opdict = {	'<' : '__lt__', '<=':'__le__', '==':'__eq__', 
 					'!=':'__ne__', '>':'__gt__', '>=':'__ge__', 
 					'is':'is_', 'is not':'is_not', 'in':'__contains__',
-					'+=':'__iadd__', '&=':'iand', '/=':'idiv', '//=':'ifloordiv',
-					'<<=':'__ilshift__', '%=':'__imod__', '*=':'__imul__',
-					'|=':'__ior__','**=':'__ipow__', '>>=':'__irshift__','-=':'__isub__',
-					'^=':'__ixor__'}
+					'+=':'__add__', '&=':'__and__', '/=':'__div__', '//=':'__floordiv__',
+					'<<=':'__lshift__', '%=':'__mod__', '*=':'__mul__',
+					'|=':'__or__','**=':'__pow__', '>>=':'__rshift__','-=':'__sub__',
+					'^=':'__xor__'}
 		self.funcVargs = 4
 		self.funcKargs = 8
 		self.freeVarName = "lambda" #Python keyword so won't be in use
@@ -22,9 +22,11 @@ class SwanVisitor(ASTVisitor):
 		self.freeUsedVars = []
 		self.classes = [] #classes defined in this module
 		self.functions = [] #functions defined in this module
+		self.vars = [] #top level vars in this module
 		self.modules = [] #imported modules
 		self.imports = {} #imported functions/modules
 		self.deps = []
+		self.toplevel = True
 		
 	def takeVar(self):
 		if len(self.freeUsedVars) > 0:
@@ -34,8 +36,9 @@ class SwanVisitor(ASTVisitor):
 		return r
 	
 	def releaseVar(self, var):
-		self.freeUsedVars.append(var)
-
+		#self.freeUsedVars.append(var)
+		pass
+		
 	#Assignment	
 	def visitAssign(self, node, classPrefix=None):
 		if classPrefix:
@@ -44,17 +47,22 @@ class SwanVisitor(ASTVisitor):
 			self.dispatch(n, node.expr)
 
 	def visitAssName(self, node, expr=None):
+		if self.toplevel:
+			self.out.write(self.module + "_")
+			self.vars.append(node.name)
 		self.out.write(node.name)
 		if expr:
 			self.out.write(" = ")
 			self.dispatch(expr, node.name)
 			
 	def visitAssAttr(self, node, expr=None):
+		if expr and isinstance(expr, Dict):
+			expr = self.dispatch(expr)
 		self.dispatch(node.expr)
 		self.out.write("."+node.attrname)
 		if expr:
 			self.out.write(" = ")
-			self.dispatch(expr)
+			self.dispatch(expr, node.expr)
 
 	def visitAssList(self, node, expr=None):
 		self.out.write("lambda = ")
@@ -78,6 +86,8 @@ class SwanVisitor(ASTVisitor):
 
 	def visitAugAssign(self, node):
 		self.dispatch(node.node)
+		self.out.write(" = ")
+		self.dispatch(node.node)
 		self.out.write("." + self.opdict[node.op] + "(")
 		self.dispatch(node.expr)
 		self.out.write(")")
@@ -95,6 +105,9 @@ class SwanVisitor(ASTVisitor):
 
 	def visitCallFunc(self, node, *args):
 		#print "callee %s, args %s, vargs %s, kargs %s" % (node.node, node.args, node.star_args, node.dstar_args)
+		if isinstance(node.node, Name) and node.node.name == "native":
+			self.out.write(node.args[0].value)
+			return
 		kwds = filter(lambda x:isinstance(x, Keyword), node.args)
 		if kwds:
 			taken = self.takeVar()
@@ -142,6 +155,8 @@ class SwanVisitor(ASTVisitor):
 		if hasattr(node, "name") and not classFunc:
 			self.out.write(self.module + "_" + node.name + " = ")
 			self.functions.append(node.name)
+		elif hasattr(node, "name"):
+			self.out.write(node.name + " = ")
 		self.out.write("function (")
 		if node.argnames:
 			for name in node.argnames[(1 if classFunc else 0):-1]:		
@@ -165,7 +180,10 @@ class SwanVisitor(ASTVisitor):
 			self.out.write("%s = typeof(%s) != 'undefined' ? %s : " % (arg, arg, arg))
 			self.dispatch(node.defaults.pop())
 			self.out.write(";\n")
+		self.toplevel = False
 		self.dispatch(node.code)
+		if not classFunc:
+		 	self.toplevel = True
 		self.out.write("}")
 			
 	def visitReturn(self, node, *args):
@@ -177,19 +195,21 @@ class SwanVisitor(ASTVisitor):
 	def visitClass(self, node, classPrefix=None):
 		self.out.write(
 			'function ' + self.module + "_" + node.name + '(){\n'
-				'if('+node.name+'.prototype.hasOwnProperty("__init__")){\n'
+				'if('+self.module + "_"+node.name+'.prototype.hasOwnProperty("__init__")){\n'
 					'this.__init__(arguments);\n'
 				'}\n'
 			'}\n')
 		self.classes.append(node.name)
-		self.out.write("_="+node.name+".prototype")
+		self.out.write("_="+self.module + "_"+node.name+".prototype")
 		if node.bases:
 			self.out.write("= ")
 			self.dispatch(node.bases[0])
 			self.out.write("();\n")
 		else:
 			self.out.write("\n")
+		self.toplevel = False
 		self.dispatch(node.code, "_.")
+		self.toplevel = True
 			
 	def visitGetattr(self, node):
 		self.dispatch(node.expr)
@@ -199,7 +219,7 @@ class SwanVisitor(ASTVisitor):
 			self.out.write("." + node.attrname)
 			
 	def visitExpression(self, node):
-		print "Visiting a Expression node"
+		#print "Visiting a Expression node"
 		for n in node.getChildNodes():
 			self.dispatch(n)
 			
@@ -245,10 +265,11 @@ class SwanVisitor(ASTVisitor):
 		self.out.write('%s = ' % taken)
 		self.dispatch(node.list, taken)
 		self.out.write("\nfor (x in %s){\n" % taken)
+		self.out.write("if(%s.hasOwnProperty(x)){" % taken)
 		self.dispatch(node.assign, None)
 		self.out.write(" = %s[x]\n" % taken)
 		self.dispatch(node.body)
-		self.out.write("}\n")
+		self.out.write("}\n}\n")
 		if node.else_:
 			self.dispatch(node.else_)
 		self.releaseVar(taken)
@@ -281,8 +302,10 @@ class SwanVisitor(ASTVisitor):
 			
 	def visitFrom(self, node):
 		self.deps.append(node.modname)
+		m = node.modname.replace('.', '_')
 		for (full, alias) in node.names:
-			self.imports[alias if alias else full] = node.modname
+			self.out.write("%s_%s = %s_%s" % (m, alias, m, full)) 
+			self.imports[alias if alias else full] = m
 			
 	def visitModule(self, node):
 		for n in node.getChildNodes():
@@ -297,25 +320,31 @@ class SwanVisitor(ASTVisitor):
 			return
 		if node.name[0] in capitals:
 			self.out.write("new ")
-		if node.name in self.classes or node.name in self.functions:
+		if node.name in self.classes or node.name in self.functions or node.name in self.vars:
 			self.out.write(self.module + "_")
 		if node.name in self.imports:
-			self.out.write(self.imports[node.name].replace('.', '_') + "_")
+			self.out.write(self.imports[node.name] + "_")
 		self.out.write(node.name)
 
 
 	def visitConst(self, node, assName=None):
-		if not node.value:
-			node.value = 0
 		if isinstance(node.value, str):
 			self.out.write('new String("%s")' % node.value)
 		else:
+			if not node.value:
+				node.value = 0
 			self.out.write("new Number(%s)" % node.value)
 
-	def visitDict(self, node):
-		print "Visiting a Dict node"
-		for n in node.getChildNodes():
-			self.dispatch(n)
+	def visitDict(self, node, expr=None):
+		taken = self.takeVar()
+		self.out.write("%s = [];\n" % taken)
+		for n in node.items:
+			self.out.write("%s[" % taken)
+			self.dispatch(n[0])
+			self.out.write("] = ")
+			self.dispatch(n[1])
+			self.out.write(";")
+		return Name(taken)
 
 	def visitTuple(self, node):
 		self.out.write("[")
@@ -327,10 +356,11 @@ class SwanVisitor(ASTVisitor):
 
 	def visitList(self, node, assName=None):
 		self.out.write("[")
-		for n in node.nodes[:-1]:
-			self.dispatch(n)
-			self.out.write(",")
-		self.dispatch(node.nodes[-1])
+		if len(node.nodes) > 0:
+			for n in node.nodes[:-1]:
+				self.dispatch(n)
+				self.out.write(",")
+			self.dispatch(node.nodes[-1])
 		self.out.write("]")
 
 	def visitListComp(self, node, assName=None):
@@ -411,10 +441,10 @@ class SwanVisitor(ASTVisitor):
 		if isinstance(node.subs[0], Sliceobj):
 			self.dispatch(node.subs[0])
 		else:
-			self.out.write('["')
+			self.out.write('[')
 			self.dispatch(node.subs[0])
-			self.out.write('"]')
-
+			self.out.write(']')
+			
 	#Try/exceptions
 	def visitTryExcept(self, node):
 		print "Visiting a TryExcept node"
@@ -446,81 +476,81 @@ class SwanVisitor(ASTVisitor):
 
 	#Arithmetic ops
 	#The ** operator
-	def visitPower(self, node):
+	def visitPower(self, node, name=None):
 		self.binOp(node, "pow")
 
 	#The / operator	
-	def visitDiv(self, node):
+	def visitDiv(self, node, name=None):
 		self.binOp(node, "div")
 
 	#The % operator 
-	def visitMod(self, node):
+	def visitMod(self, node, name=None):
 		self.binOp(node, "mod")
 
 	#The // operator
-	def visitFloorDiv(self, node):
+	def visitFloorDiv(self, node, name=None):
 		self.binOp(node, "floordiv")
 
 	#The * operator
-	def visitMul(self, node):
+	def visitMul(self, node, name=None):
 		self.binOp(node, "mul")
 
 	#The + operator
-	def visitAdd(self, node):
+	def visitAdd(self, node, name=None):
 		self.binOp(node, "add")
 
     #The - operator
-	def visitSub(self, node):
+	def visitSub(self, node, name=None):
 		self.binOp(node, "sub")
 
 	#As in a = +b
-	def visitUnaryAdd(self, node):
+	def visitUnaryAdd(self, node, name=None):
 		self.dispatch(node.expr)
 		self.out.write(".__pos__()")
 
 	#As in a = -b		
-	def visitUnarySub(self, node):
+	def visitUnarySub(self, node, name=None):
 		self.dispatch(node.expr)
 		self.out.write(".__neg__()")
 
 	#Bitwise ops &, |, ^, ~, << and >>
-	def visitBitand(self, node):
+	def visitBitand(self, node, name=None):
 		self.binOp(node, "and")
 
-	def visitBitor(self, node):
+	def visitBitor(self, node, name=None):
 		self.binOp(node, "or")
 
-	def visitBitxor(self, node):
+	def visitBitxor(self, node, name=None):
 		self.binOp(node, "xor")
 
-	def visitLeftShift(self, node):
+	def visitLeftShift(self, node, name=None):
 		self.binOp(node, "lshift")
 
-	def visitRightShift(self, node):
+	def visitRightShift(self, node, name=None):
 		self.binOp(node, "rshift")
 
-	def visitInvert(self, node):
+	def visitInvert(self, node, name=None):
 		self.dispatch(node.expr)
 		self.out.write(".__inv__()")
 
 	#Boolean ops : not, or, and	and comparison	
-	def visitNot(self, node):
+	def visitNot(self, node, name=None):
 		self.out.write("!")
 		self.dispatch(node.expr)
 
-	def visitOr(self, node):
+	def visitOr(self, node, name=None):
 		for n in node.nodes[:-1]:
 			self.dispatch(n)
 			self.out.write("||")
 		self.dispatch(node.nodes[-1])
 
-	def visitAnd(self, node):
+	def visitAnd(self, node, name=None):
 		for n in node.nodes[:-1]:
 			self.dispatch(n)
 			self.out.write("&&")
 		self.dispatch(node.nodes[-1])
 
-	def visitCompare(self, node):
+	def visitCompare(self, node, name=None):
 		self.dispatch(node.expr)
 		for op,expr in node.ops:
 			self.out.write("."+self.opdict[op]+"(")

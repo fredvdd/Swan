@@ -24,41 +24,49 @@ def translateTest(outstream):
 	for test in os.listdir(tests):
 		if test[-2:] == "py":
 			testfile = "%s/%s" % (tests, test)
-			modulename = testfile.split('/')[-1].split('.')[0]
+			modulename = os.path.basename(testfile).split('.')[0]
 			print "##############"
-			print ">>>> Translating %s" % test
+			print ">>>> Translating %s (%s)" % (modulename,test)
 			print "##############\n"
 			translate(modulename, testfile, outstream)
 			
 def findpath(modname):
 	for path in sys.path:
 		modpath = "%s/%s.py" % (path, modname)
-		print "Looking for " + modpath
+		#print "Looking for " + modpath
 		if os.path.exists(modpath):
 			return modpath
 	raise ImportError("Couldn't find module " + modname)
 	
 def getModuleName(modulepath):
-	pathparts = modulepath.split('/')
-	path = os.getcwd() + "/" + '/'.join(pathparts[:-1])
+	path, name = os.path.split(modulepath)
+	path = os.getcwd() + "/" + path
 	if path not in sys.path:
 		sys.path.insert(0, path)
-	return pathparts[-1].split('.')[0]
+	return name.split('.')[0]
 
 if __name__ == '__main__':
 	if sys.argv[1] == "test":
 		translateTest(sys.stdout)
+	else:	
+		modulepaths = sys.argv[1:]
 	
-	modulepaths = sys.argv[1:]
+		modules = map(lambda x: (getModuleName(x), x), modulepaths)
+		outputname = "%s.html" % modules[0][0]
+		buffers = []
+		while modules:
+			modulename, modulepath = modules.pop()
+			more, res = translate(modulename, modulepath, Buffer())
+			buffers.append(res)
+			modules.extend([(x, findpath(x)) for x in more])
 	
-	modules = map(lambda x: (getModuleName(x), x), modulepaths)
-	buffers = []
-	while modules:
-		modulename, modulepath = modules.pop()
-		more, res = translate(modulename, modulepath, Buffer())
-		buffers.append(res)
-		modules.extend([(x, findpath(x)) for x in more])
+		compilation = ""
+		while buffers:
+			compilation += buffers.pop().acc
+
+		base = open("%s/%s/stub.html" % (os.getcwd(), os.path.dirname(sys.argv[0])), 'r').read()
+		base = base.replace("%%compilation%%", compilation)
 	
-	while buffers:
-		print buffers.pop().acc
-		
+		outputfile = open(outputname, 'w')
+		outputfile.write(base)
+		outputfile.close()
