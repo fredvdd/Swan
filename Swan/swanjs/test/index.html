@@ -9,18 +9,30 @@
 		<script type="text/javascript">
 //<![CDATA[
 
-		var fruits = ["Banana", "Orange", "Apple", "Mango"];
+Number.prototype.__neg__ = function(){
+	return new Number(-this.valueOf())
+}
 
-		map = function(f, l){
-			r = [];
-			for (x in l){
-				r.push(f(l[x]))
-			}
-			return r;
-		}
+Array.prototype.stepSlice = function(start, end, step){
+	r = [];
+	if(start < 0){
+		start += this.length
+	}
+	if(end <= 0){
+		end += this.length
+	}
+	for(i = start; i < end; i += step){
+		r.push(this[i]);
+	}
+	return r
+}
 
-		var uF = map(function(x){return x.toUpperCase()}, fruits);
-		document.write(uF);
+a = [new Number(1),new Number(2),new Number(3),new Number(4),new Number(5),new Number(6),new Number(7),new Number(8),new Number(9),new Number(10),new Number(11),new Number(12),new Number(13),new Number(14),new Number(15),new Number(16),new Number(17),new Number(18),new Number(19),new Number(20),new Number(21),new Number(22),new Number(23),new Number(24),new Number(25),new Number(26),new Number(27),new Number(28),new Number(29),new Number(30),new Number(31),new Number(32),new Number(33),new Number(34),new Number(35),new Number(36),new Number(37),new Number(38),new Number(39),new Number(40),new Number(41),new Number(42),new Number(43),new Number(44),new Number(45),new Number(46),new Number(47),new Number(48),new Number(49),new Number(50)]
+console.log(a.stepSlice(new Number(0), new Number(50), new Number(5))+"\n")
+console.log(a.stepSlice(new Number(0), new Number(40), new Number(5))+"\n")
+console.log(a.stepSlice(new Number(10), new Number(0), new Number(5))+"\n")
+
+
 		//]]>
 		</script>
 	</head>
