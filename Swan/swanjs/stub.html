@@ -38,6 +38,29 @@ str = function(a){
 	return new String(a)
 }
 
+super = function(class, instance){
+	return instance.constructor.superprototype
+}
+
+object = Object
+
+function extend(sub, sup) {
+    function Intermediary() {}
+    Intermediary.prototype = sup.prototype;
+    sub.prototype = new Intermediary();
+    sub.prototype.constructor = subclass;
+    sub.super = sup;
+	sub.superprototype = sup.prototype;
+}
+
+init = function(){
+	$bdy = document.documentElement.lastChild
+	//testElem = document.createElement('p')
+	//testElem.innerHTML = "Hell<span style='color:blue'>O</span>"
+	//$bdy.appendChild(testElem)
+	console.log("Initialised")
+}
+
 Object.prototype.__lt__ = function(a){
 	return this.valueOf() < a
 }
@@ -189,6 +212,6 @@ Array.prototype.append = function(a){
 		//]]>
 		</script>
 	</head>
-	<body>
+	<body onload="init()">
 	</body>
 </html>

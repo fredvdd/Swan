@@ -31,10 +31,13 @@ def translateTest(outstream):
 			translate(modulename, testfile, outstream)
 			
 def findpath(modname):
+	modname = modname.replace(".", "/")
 	for path in sys.path:
 		modpath = "%s/%s.py" % (path, modname)
 		#print "Looking for " + modpath
 		if os.path.exists(modpath):
+			sys.path.insert(0, os.path.dirname(modpath))
+			#print "\n"
 			return modpath
 	raise ImportError("Couldn't find module " + modname)
 	
@@ -44,6 +47,21 @@ def getModuleName(modulepath):
 	if path not in sys.path:
 		sys.path.insert(0, path)
 	return name.split('.')[0]
+	
+def unravel(buffs):
+	orderedbuffs = [buffs[0]]
+	for buf in buffs[1:]:
+		name, _, _ = buf
+		ins = False
+		for pos, (_, deps, _) in enumerate(orderedbuffs):
+			if name in deps:
+				orderedbuffs.insert(pos, buf)
+				ins = True
+				break
+		if not ins:
+			orderedbuffs.append(buf)
+	return orderedbuffs
+				
 
 if __name__ == '__main__':
 	if sys.argv[1] == "test":
@@ -53,16 +71,30 @@ if __name__ == '__main__':
 	
 		modules = map(lambda x: (getModuleName(x), x), modulepaths)
 		outputname = "%s.html" % modules[0][0]
+		done = []
 		buffers = []
 		while modules:
-			modulename, modulepath = modules.pop()
+			modulename, modulepath = modules.pop(0)
 			more, res = translate(modulename, modulepath, Buffer())
-			buffers.append(res)
-			modules.extend([(x, findpath(x)) for x in more])
+			
+			done.append(modulepath)
+			print "Done %s, need %s" % (modulename, more)
+			
+			morepaths = [findpath(x) for x in more]
+			for mod, modpath in zip(more, morepaths):
+				if modpath not in done:
+					#print "%s : %s" % (modpath, done)
+					modules.append((mod,modpath))
+				else:
+					pass#print "Already done %s" % mod
+			buffers.append((modulepath, morepaths, res))
 	
 		compilation = ""
+		buffers = unravel(buffers)
 		while buffers:
-			compilation += buffers.pop().acc
+			path, more, buff = buffers.pop(0)
+			print "Adding " + path
+			compilation += buff.acc
 
 		base = open("%s/%s/stub.html" % (os.getcwd(), os.path.dirname(sys.argv[0])), 'r').read()
 		base = base.replace("%%compilation%%", compilation)

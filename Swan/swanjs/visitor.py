@@ -6,7 +6,7 @@ class SwanVisitor(ASTVisitor):
 	
 	def __init__(self, modulename, outstream):
 		ASTVisitor.__init__(self)
-		self.module = modulename
+		self.module = modulename.split('.')[-1]
 		self.out = outstream
 		self.opdict = {	'<' : '__lt__', '<=':'__le__', '==':'__eq__', 
 					'!=':'__ne__', '>':'__gt__', '>=':'__ge__', 
@@ -105,6 +105,8 @@ class SwanVisitor(ASTVisitor):
 
 	def visitCallFunc(self, node, *args):
 		#print "callee %s, args %s, vargs %s, kargs %s" % (node.node, node.args, node.star_args, node.dstar_args)
+		if isinstance(node.node, Name) and node.node.name[0] in capitals:
+			self.out.write("new ")
 		if isinstance(node.node, Name) and node.node.name == "native":
 			self.out.write(node.args[0].value)
 			return
@@ -152,14 +154,16 @@ class SwanVisitor(ASTVisitor):
 		self.transformFunction(node, classPrefix)
 		
 	def transformFunction(self, node, classFunc=None):
+		#print "Function %s, classFunc = %s, args %s, %s" % (node.name, classFunc, node.argnames, (1 if classFunc else 0)) 
 		if hasattr(node, "name") and not classFunc:
-			self.out.write(self.module + "_" + node.name + " = ")
+			self.out.write(self.module.replace(".", "_") + "_" + node.name + " = ")
 			self.functions.append(node.name)
 		elif hasattr(node, "name"):
 			self.out.write(node.name + " = ")
 		self.out.write("function (")
+		node.argnames = node.argnames[1:] if classFunc else node.argnames
 		if node.argnames:
-			for name in node.argnames[(1 if classFunc else 0):-1]:		
+			for name in node.argnames[:-1]:		
 				self.out.write(name + ",")
 			self.out.write(node.argnames[-1])
 		self.out.write("){\n")
@@ -193,20 +197,30 @@ class SwanVisitor(ASTVisitor):
 
 	#Need to check out Javascript inheritance?
 	def visitClass(self, node, classPrefix=None):
+		className = self.module.replace(".", "_") + "_" + node.name
 		self.out.write(
-			'function ' + self.module + "_" + node.name + '(){\n'
-				'if('+self.module + "_"+node.name+'.prototype.hasOwnProperty("__init__")){\n'
-					'this.__init__(arguments);\n'
+			'function ' + className + '(){\n'
+				'if('+className+'.prototype.hasOwnProperty("__init__")){\n'
+					+ className + '.prototype.__init__.apply(this, arguments);\n'
 				'}\n'
 			'}\n')
 		self.classes.append(node.name)
-		self.out.write("_="+self.module + "_"+node.name+".prototype")
 		if node.bases:
-			self.out.write("= ")
-			self.dispatch(node.bases[0])
-			self.out.write("();\n")
-		else:
-			self.out.write("\n")
+			self.out.write("extend(" + className + ", ")
+			n = node.bases[0].name
+			if n in self.classes or n in self.functions or n in self.vars:
+				self.out.write(self.module.replace(".", "_") + "_")
+			if n in self.imports:
+				self.out.write(self.imports[n] + "_")
+			self.out.write(n)
+			self.out.write(");\n")
+		self.out.write("_="+self.module.replace(".", "_") + "_"+node.name+".prototype\n")
+		# if node.bases:
+		# 	self.out.write("= ")
+		# 	self.dispatch(node.bases[0])
+		# 	self.out.write("();\n")
+		# else:
+		# 	self.out.write("\n")
 		self.toplevel = False
 		self.dispatch(node.code, "_.")
 		self.toplevel = True
@@ -302,9 +316,10 @@ class SwanVisitor(ASTVisitor):
 			
 	def visitFrom(self, node):
 		self.deps.append(node.modname)
-		m = node.modname.replace('.', '_')
+		m = node.modname.split('.')[-1]#replace('.', '_')
 		for (full, alias) in node.names:
-			self.out.write("%s_%s = %s_%s" % (m, alias, m, full)) 
+			if alias:
+				self.out.write("%s_%s = %s_%s" % (m, alias, m, full)) 
 			self.imports[alias if alias else full] = m
 			
 	def visitModule(self, node):
@@ -318,10 +333,10 @@ class SwanVisitor(ASTVisitor):
 		if node.name == "self":
 			self.out.write("this")
 			return
-		if node.name[0] in capitals:
-			self.out.write("new ")
+		# if node.name[0] in capitals:
+		# 	self.out.write("new ")
 		if node.name in self.classes or node.name in self.functions or node.name in self.vars:
-			self.out.write(self.module + "_")
+			self.out.write(self.module.replace(".", "_") + "_")
 		if node.name in self.imports:
 			self.out.write(self.imports[node.name] + "_")
 		self.out.write(node.name)
@@ -582,3 +597,54 @@ class SwanVisitor(ASTVisitor):
 		print "Visiting a GenExprInner node"
 		for n in node.getChildNodes():
 			self.dispatch(n)
+
+			# function UIElement_UIElement() {
+			#     if (UIElement_UIElement.prototype.hasOwnProperty("__init__")) {
+			#         this.__init__(arguments);
+			#     }
+			# }
+			# _ = UIElement_UIElement.prototype
+			# // _.__init__ = function (self){
+			# // console.log(new String("WHy not!")+"n")
+			# // }
+			# _.cock = function(){
+			# 	console.log("COCK")
+			# }
+			# 
+			# function TextBox_TextBox() {
+			#     if (TextBox_TextBox.prototype.hasOwnProperty("__init__")) {
+			#         TextBox_TextBox.prototype.__init__(arguments);
+			#     }
+			# }
+			# extend(TextBox_TextBox, UIElement_UIElement)
+			# 
+			#  _ = TextBox_TextBox.prototype
+			#  _.__init__ = function() {
+			# 	this.num = 3
+			#     console.log(new String("Because") + "\n")
+			# }
+			# 
+			# 
+			# function PasswordBox_PasswordBox() {
+			# 	//PasswordBox_PasswordBox.superclass.apply(this, arguments)
+			#     PasswordBox_PasswordBox.prototype.__init__.apply(this, arguments);
+			# }
+			# extend(PasswordBox_PasswordBox, TextBox_TextBox)
+			# 
+			#  _ = PasswordBox_PasswordBox.prototype
+			#  _.__init__ = function(a, b, c) {
+			# 	console.log(this)
+			# 	//this.constructor.superclass.apply(this, arguments)
+			# 	this.num = this.num + 5
+			#     console.log(new String("I say") + "\n")
+			# }
+			# 
+			# 
+			# 
+			# 
+			# //ui_elem = new TextBox_TextBox()
+			# // ui_elem2 = new PasswordBox_PasswordBox()
+			# ui_elem3 = new PasswordBox_PasswordBox("boom","boom","pow")
+			# console.log(ui_elem3.num)
+			# ui_elem3.cock()
+			# // ui_elem3.cock()
