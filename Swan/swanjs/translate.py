@@ -70,6 +70,7 @@ if __name__ == '__main__':
 		modulepaths = sys.argv[1:]
 	
 		modules = map(lambda x: (getModuleName(x), x), modulepaths)
+		mainmodule = modules[0][0]
 		outputname = "%s.html" % modules[0][0]
 		done = []
 		buffers = []
@@ -89,15 +90,18 @@ if __name__ == '__main__':
 					pass#print "Already done %s" % mod
 			buffers.append((modulepath, morepaths, res))
 	
-		compilation = ""
+		compilation = "mainmodule = '%s'\n\n" % mainmodule
 		buffers = unravel(buffers)
 		while buffers:
 			path, more, buff = buffers.pop(0)
-			print "Adding " + path
+			print "Module: " + path
+			compilation += "//**** Module: %s ****//\n" % (os.path.basename(path))
 			compilation += buff.acc
+			compilation += "//** End Module: %s **//\n\n" % (os.path.basename(path))
 
 		base = open("%s/%s/stub.html" % (os.getcwd(), os.path.dirname(sys.argv[0])), 'r').read()
 		base = base.replace("%%compilation%%", compilation)
+		base = base.replace("%%modulename%%", mainmodule)
 	
 		outputfile = open(outputname, 'w')
 		outputfile.write(base)

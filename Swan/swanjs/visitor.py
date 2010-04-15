@@ -1,5 +1,5 @@
 from compiler.visitor import ASTVisitor
-from compiler.ast import Keyword, Name, Sliceobj, Dict
+from compiler.ast import Keyword, Name, Sliceobj, Dict, Getattr, CallFunc
 from string import ascii_uppercase as capitals
 
 class SwanVisitor(ASTVisitor):
@@ -105,6 +105,8 @@ class SwanVisitor(ASTVisitor):
 
 	def visitCallFunc(self, node, *args):
 		#print "callee %s, args %s, vargs %s, kargs %s" % (node.node, node.args, node.star_args, node.dstar_args)
+		if self.supercall(node):
+			return
 		if isinstance(node.node, Name) and node.node.name[0] in capitals:
 			self.out.write("new ")
 		if isinstance(node.node, Name) and node.node.name == "native":
@@ -134,6 +136,17 @@ class SwanVisitor(ASTVisitor):
 			self.out.write(", ")
 			self.dispatch(node.dstar_args)
 		self.out.write(")")
+		
+	def supercall(self, node): #Vaguely hacky way of making supercalls work
+		if isinstance(node.node, Getattr) and isinstance(node.node.expr, CallFunc) and node.node.expr.node.name == 'super':
+			self.out.write("super(")
+			self.dispatch(node.node.expr.args[0])
+			self.out.write(", this, '" + node.node.attrname + "')")
+			node.node.expr = Name("")
+			self.dispatch(node)
+			return True
+		else:
+			return False
 		
 	def visitKeyword(self, node, var):
 		self.out.write("%s.%s = " % (var, node.name))

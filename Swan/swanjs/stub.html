@@ -38,8 +38,11 @@ str = function(a){
 	return new String(a)
 }
 
-super = function(class, instance){
-	return instance.constructor.superprototype
+super = function(claxx, instance){
+	return {'__init__' : function(args){
+			claxx.super.call(instance, args)
+		}
+	}
 }
 
 object = Object
@@ -48,7 +51,7 @@ function extend(sub, sup) {
     function Intermediary() {}
     Intermediary.prototype = sup.prototype;
     sub.prototype = new Intermediary();
-    sub.prototype.constructor = subclass;
+    sub.prototype.constructor = sub;
     sub.super = sup;
 	sub.superprototype = sup.prototype;
 }
@@ -59,6 +62,7 @@ init = function(){
 	//testElem.innerHTML = "Hell<span style='color:blue'>O</span>"
 	//$bdy.appendChild(testElem)
 	console.log("Initialised")
+	%%modulename%%_launch()
 }
 
 Object.prototype.__lt__ = function(a){

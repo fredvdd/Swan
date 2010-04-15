@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+	"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<meta http-equiv="Content-type" content="text/html; charset=utf-8"/>
+	<title>Element Creation Test</title>
+	<script type="text/javascript" charset="utf-8">
+		doo = function(){
+			elem = document.createElement('input')
+			elem.type = 'text'
+			console.log(document.documentElement.lastChild.nodeName)
+			console.log(document.documentElement.childNodes.length)
+			$body = document.documentElement.lastChild;
+			$body.appendChild(elem)
+			$body.lastChild.value = "Done"
+		}
+	</script>
+</head>
+<body onload="doo()">
+	<h1>HELLO!</h1>
+	<p>Hello!</p>
+</body>
+</html>
