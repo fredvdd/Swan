@@ -9,4 +9,5 @@ def launch():
 	elem2 = PasswordBox()
 	add(elem)
 	add(elem2)
-
+	elem.setLabelText("Name:")
+	elem2.setLabelText("Password:")

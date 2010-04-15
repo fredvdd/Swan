@@ -38,11 +38,12 @@ str = function(a){
 	return new String(a)
 }
 
-super = function(claxx, instance){
-	return {'__init__' : function(args){
-			claxx.super.call(instance, args)
-		}
-	}
+super = function(claxx, instance, name){
+	r =  {}
+	r[name] = function(args){
+				claxx.superprototype[name].call(instance, args)
+			}
+	return r
 }
 
 object = Object
@@ -56,8 +57,11 @@ function extend(sub, sup) {
 	sub.superprototype = sup.prototype;
 }
 
+var id_counter = 21
+
 init = function(){
 	$bdy = document.documentElement.lastChild
+	id_counter++
 	//testElem = document.createElement('p')
 	//testElem.innerHTML = "Hell<span style='color:blue'>O</span>"
 	//$bdy.appendChild(testElem)
