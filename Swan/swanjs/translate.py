@@ -83,8 +83,7 @@ if __name__ == '__main__':
 			
 			morepaths = [findpath(x) for x in more]
 			for mod, modpath in zip(more, morepaths):
-				if modpath not in done:
-					#print "%s : %s" % (modpath, done)
+				if modpath not in done and (mod,modpath) not in modules:
 					modules.append((mod,modpath))
 				else:
 					pass#print "Already done %s" % mod

@@ -18,4 +18,12 @@ class TextBox(UIElement):
 		self.element.type = "text"
 		
 	def setLabelText(self, text):
-		self.element.parentElement.insertBefore(Label(text).forInput(self.element.id).element, self.element)
+		label = Label(text)
+		label.forInput(self.element.id)
+		self.element.parentElement.insertBefore(label.element, self.element)
+		
+class PasswordBox(TextBox):
+
+	def __init__(self):
+		super(PasswordBox,self).__init__()
+		self.element.type = "password"

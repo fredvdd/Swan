@@ -43,6 +43,8 @@ class SwanVisitor(ASTVisitor):
 	def visitAssign(self, node, classPrefix=None):
 		if classPrefix:
 			self.out.write(classPrefix)
+		# elif not self.toplevel:
+		# 	self.out.write("var ")
 		for n in node.nodes:
 			self.dispatch(n, node.expr)
 
@@ -50,6 +52,8 @@ class SwanVisitor(ASTVisitor):
 		if self.toplevel:
 			self.out.write(self.module + "_")
 			self.vars.append(node.name)
+		else:
+			self.out.write("var ")
 		self.out.write(node.name)
 		if expr:
 			self.out.write(" = ")
@@ -138,15 +142,15 @@ class SwanVisitor(ASTVisitor):
 		self.out.write(")")
 		
 	def supercall(self, node): #Vaguely hacky way of making supercalls work
-		if isinstance(node.node, Getattr) and isinstance(node.node.expr, CallFunc) and node.node.expr.node.name == 'super':
-			self.out.write("super(")
-			self.dispatch(node.node.expr.args[0])
-			self.out.write(", this, '" + node.node.attrname + "')")
-			node.node.expr = Name("")
-			self.dispatch(node)
-			return True
-		else:
-			return False
+		if isinstance(node.node, Getattr) and isinstance(node.node.expr, CallFunc):
+			if isinstance(node.node.expr.node, Name) and node.node.expr.node.name == 'super':
+				self.out.write("super(")
+				self.dispatch(node.node.expr.args[0])
+				self.out.write(", this, '" + node.node.attrname + "')")
+				node.node.expr = Name("")
+				self.dispatch(node)
+				return True
+		return False
 		
 	def visitKeyword(self, node, var):
 		self.out.write("%s.%s = " % (var, node.name))
@@ -181,10 +185,10 @@ class SwanVisitor(ASTVisitor):
 			self.out.write(node.argnames[-1])
 		self.out.write("){\n")
 		if (node.flags & self.funcVargs) and (node.flags & self.funcKargs):
-			self.out.write(node.argnames[-2]+"=arguments.slice("+str(len(node.argnames)-2)+",-1);\n")
+			self.out.write(node.argnames[-2]+"=Array.prototype.slice.call(arguments,"+str(len(node.argnames)-2)+",arguments.length-1);\n")
 			defaultArgs = node.argnames[:-2]
 		elif node.flags & self.funcVargs:
-			self.out.write(node.argnames[-2]+"=arguments.slice("+str(len(node.argnames)-1)+");\n")
+			self.out.write(node.argnames[-1]+"=Array.prototype.slice.call(arguments,"+str(len(node.argnames)-1)+",arguments.length);\n")
 			defaultArgs = node.argnames[:-1]
 		elif node.flags & self.funcKargs:
 			defaultArgs = node.argnames[:-1]
@@ -293,6 +297,7 @@ class SwanVisitor(ASTVisitor):
 		self.dispatch(node.list, taken)
 		self.out.write("\nfor (x in %s){\n" % taken)
 		self.out.write("if(%s.hasOwnProperty(x)){" % taken)
+		print node.assign
 		self.dispatch(node.assign, None)
 		self.out.write(" = %s[x]\n" % taken)
 		self.dispatch(node.body)
