@@ -15,3 +15,4 @@ def launch():
 	cont.add(elem, elem2)
 	elem.setLabelText("Name:")
 	elem2.setLabelText("Password:")
+	elem.setAttributes(value="fun", *vargs, **kargs)

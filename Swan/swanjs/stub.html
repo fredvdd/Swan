@@ -69,6 +69,38 @@ init = function(){
 	%%modulename%%_launch()
 }
 
+Dict = function(content){
+	for(x in content){
+		if(content.hasOwnProperty(x)){
+			this[x] = content[x]
+		}
+	}
+}
+extend(Dict, Object)
+
+Dict.prototype.iteritems = function(){
+	r = []
+	for(x in this){
+		if(this.hasOwnProperty(x)){
+			r.append([x,this[x]])
+		}
+	}
+	return r;
+}
+
+StarArgs = function(in_arr){
+	this.arr = in_arr
+}
+StarArgs.prototype.name = "StarArgs"
+
+extractVarArgs = function(vargs, start, end){
+	if((end - start) == 1 && (vargs[start].__proto__.name == 'StarArgs')){
+		return vargs[start].arr
+	}else{
+		return Array.prototype.slice.call(vargs, start, end);
+	}
+}
+
 Object.prototype.__lt__ = function(a){
 	return this.valueOf() < a
 }

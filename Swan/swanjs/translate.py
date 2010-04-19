@@ -1,6 +1,6 @@
 from Swan.swanjs.visitor import SwanVisitor
 from compiler.visitor import ExampleASTVisitor
-from compiler import parse, parseFile, walk
+from compiler import parseFile, walk
 import sys, os
 
 class Buffer():
@@ -10,6 +10,9 @@ class Buffer():
 		
 	def write(self, mess):
 		self.acc += mess
+	
+	def __str__(self):
+		return self.acc
 
 def translate(modulename, modulepath, outstream):	
 	ast = parseFile(modulepath)
@@ -98,7 +101,9 @@ if __name__ == '__main__':
 			compilation += buff.acc
 			compilation += "//** End Module: %s **//\n\n" % (os.path.basename(path))
 
-		base = open("%s/%s/stub.html" % (os.getcwd(), os.path.dirname(sys.argv[0])), 'r').read()
+		stubloc = "%s/stub.html" % os.path.dirname(sys.argv[0])
+		stubloc = stubloc if stubloc.startswith(os.getcwd()) else os.getcwd() +"/" + stubloc
+		base = open(stubloc, 'r').read()
 		base = base.replace("%%compilation%%", compilation)
 		base = base.replace("%%modulename%%", mainmodule)
 	
