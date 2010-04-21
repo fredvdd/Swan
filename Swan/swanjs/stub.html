@@ -14,7 +14,7 @@ len = function(l){
 }
 
 map = function(f, l){
-	r = [];
+	var r = [];
 	for(x in l){
 		r.push(f(l[x]));
 	}
@@ -39,7 +39,7 @@ str = function(a){
 }
 
 super = function(claxx, instance, name){
-	r =  {}
+	var r =  {}
 	r[name] = function(args){
 				claxx.superprototype[name].call(instance, args)
 			}
@@ -246,7 +246,7 @@ Array.prototype.stepSlice = function(start, end, step){
 Array.prototype.append = function(a){
 	this.push(a)
 }
-
+console.log("a" < "ab")
 %%compilation%%
 
 		//]]>

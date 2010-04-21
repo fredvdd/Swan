@@ -72,7 +72,7 @@ class SwanVisitor(ASTVisitor):
 			self.dispatch(expr, node.expr)
 
 	def visitAssList(self, node, expr=None):
-		print expr
+		#print expr
 		self.out.write("lambda = ")
 		self.dispatch(expr) #should evaluate to a array
 		self.out.write("\n")
@@ -113,7 +113,7 @@ class SwanVisitor(ASTVisitor):
 		self.out.write(".__repr__()")
 
 	def visitCallFunc(self, node, *args):
-		print "callee %s, args %s, vargs %s, kargs %s" % (node.node, node.args, node.star_args, node.dstar_args)
+		#print "callee %s, args %s, vargs %s, kargs %s" % (node.node, node.args, node.star_args, node.dstar_args)
 		if self.supercall(node):
 			return
 		if isinstance(node.node, Name) and node.node.name[0] in capitals:
@@ -191,6 +191,7 @@ class SwanVisitor(ASTVisitor):
 			self.out.write(self.module.replace(".", "_") + "_" + node.name + " = ")
 			self.functions.append(node.name)
 		elif hasattr(node, "name"):
+			print ("\t" if classFunc else "") + "\tFunction %s" % (node.name)
 			self.out.write(node.name + " = ")
 		self.out.write("function (")
 		node.argnames = node.argnames[1:] if classFunc else node.argnames
@@ -232,6 +233,7 @@ class SwanVisitor(ASTVisitor):
 
 	#Need to check out Javascript inheritance?
 	def visitClass(self, node, classPrefix=None):
+		print "\tClass %s" % node.name
 		className = self.module.replace(".", "_") + "_" + node.name
 		self.out.write(
 			'function ' + className + '(){\n'
@@ -260,7 +262,7 @@ class SwanVisitor(ASTVisitor):
 		self.dispatch(node.code, "_.")
 		self.toplevel = True
 			
-	def visitGetattr(self, node):
+	def visitGetattr(self, node, expr=None):
 		self.dispatch(node.expr)
 		if isinstance(node.expr, Name) and node.expr.name in self.modules:
 			self.out.write("_" + node.attrname)
@@ -316,7 +318,7 @@ class SwanVisitor(ASTVisitor):
 		index = self.takeVar()
 		self.out.write("\nfor (%s in %s){\n" % (index, taken))
 		self.out.write("if(%s.hasOwnProperty(%s)){" % (taken, index))
-		print node.assign
+		#print node.assign
 		self.dispatch(node.assign, Name("%s[%s];\n"%(taken,index)))
 		#self.out.write(" = %s[x]\n" % taken)
 		self.dispatch(node.body)

@@ -13,14 +13,6 @@ class Buffer():
 	
 	def __str__(self):
 		return self.acc
-
-def translate(modulename, modulepath, outstream):	
-	ast = parseFile(modulepath)
-	v = SwanVisitor(modulename, outstream)
-	w = ExampleASTVisitor()
-	w.VERBOSE = 1
-	walk(ast, v, v)
-	return (v.deps, v.out)
 		
 def translateTest(outstream):
 	tests = os.getcwd() + "/Swan/swanjs/test"
@@ -32,6 +24,14 @@ def translateTest(outstream):
 			print ">>>> Translating %s (%s)" % (modulename,test)
 			print "##############\n"
 			translate(modulename, testfile, outstream)
+
+def translate(modulename, modulepath, outstream):	
+	ast = parseFile(modulepath)
+	v = SwanVisitor(modulename, outstream)
+	w = ExampleASTVisitor()
+	w.VERBOSE = 1
+	walk(ast, v, v)
+	return (v.deps, v.out)
 			
 def findpath(modname):
 	modname = modname.replace(".", "/")
@@ -44,14 +44,18 @@ def findpath(modname):
 			return modpath
 	raise ImportError("Couldn't find module " + modname)
 	
-def getModuleName(modulepath):
-	path, name = os.path.split(modulepath)
-	path = os.getcwd() + "/" + path
-	if path not in sys.path:
-		sys.path.insert(0, path)
-	return name.split('.')[0]
+def enqueueModules(modulepaths):
+	modules = []
+	for modulepath in modulepaths:
+		path, name = os.path.split(modulepath)
+		path = "%s/%s" % (os.getcwd(), path) # if not path.startswith(os.getcwd()) else path
+		if path not in sys.path:
+			sys.path.insert(0, path)
+		modules.append((name.split('.')[0], modulepath))
+	return modules
 	
 def unravel(buffs):
+	print "Re-ordering modules..."
 	orderedbuffs = [buffs[0]]
 	for buf in buffs[1:]:
 		name, _, _ = buf
@@ -72,31 +76,35 @@ if __name__ == '__main__':
 	else:	
 		modulepaths = sys.argv[1:]
 	
-		modules = map(lambda x: (getModuleName(x), x), modulepaths)
+		modules = enqueueModules(modulepaths)#map(lambda x: (getModuleName(x), x), modulepaths)
 		mainmodule = modules[0][0]
 		outputname = "%s.html" % modules[0][0]
 		done = []
 		buffers = []
+		print "Cross-compiling: "
 		while modules:
 			modulename, modulepath = modules.pop(0)
-			more, res = translate(modulename, modulepath, Buffer())
+			print "Module %s" % modulename
+			deps, res = translate(modulename, modulepath, Buffer())
 			
 			done.append(modulepath)
-			print "Done %s, need %s" % (modulename, more)
+			print "Done %s, need %s" % (modulename, deps)
 			
-			morepaths = [findpath(x) for x in more]
-			for mod, modpath in zip(more, morepaths):
-				if modpath not in done and (mod,modpath) not in modules:
+			deppaths = [findpath(x) for x in deps]
+			for mod, modpath in zip(deps, deppaths):
+				if modpath not in done and modpath not in [y for (x,y) in modules]:
 					modules.append((mod,modpath))
 				else:
-					pass#print "Already done %s" % mod
-			buffers.append((modulepath, morepaths, res))
+					print "Already done %s" % mod
+			buffers.append((modulepath, deppaths, res))
+			#print "%s" % modules
+			#print "%s" % buffers
 	
-		compilation = "mainmodule = '%s'\n\n" % mainmodule
+		compilation = ""
 		buffers = unravel(buffers)
 		while buffers:
-			path, more, buff = buffers.pop(0)
-			print "Module: " + path
+			path, deps, buff = buffers.pop(0)
+			print "Writing module: " + os.path.basename(path).split(".")[0]
 			compilation += "//**** Module: %s ****//\n" % (os.path.basename(path))
 			compilation += buff.acc
 			compilation += "//** End Module: %s **//\n\n" % (os.path.basename(path))
@@ -106,7 +114,8 @@ if __name__ == '__main__':
 		base = open(stubloc, 'r').read()
 		base = base.replace("%%compilation%%", compilation)
 		base = base.replace("%%modulename%%", mainmodule)
-	
+		
 		outputfile = open(outputname, 'w')
 		outputfile.write(base)
 		outputfile.close()
+		print "Output written to %s" % outputname
