@@ -16,10 +16,10 @@ def launch():
 	cont.add(elem, elem2)
 	elem.addLabelAfter(Label(":Name "))
 	elem2.addLabelAfter(Label(":Password "))
-	elem.setAttributes(value="fun")
+	elem.setAttributes(value="fun", name="One")
 	button = UIElement('button')
 	cont.addAtPosition(button, 1)
 	#cont.remove(elem, elem2)
 	#cont.removeAtPosition(2,3)
 	cont.removeAll()
-	print 3 >= 3
+	print "a" >= "ab"

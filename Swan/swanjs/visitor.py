@@ -1,5 +1,5 @@
 from compiler.visitor import ASTVisitor
-from compiler.ast import Keyword, Const, Name, Sliceobj, Dict, Getattr, CallFunc
+from compiler.ast import Keyword, Const, Name, Sliceobj, Dict, Getattr, CallFunc, Tuple
 from string import ascii_uppercase as capitals
 
 class SwanVisitor(ASTVisitor):
@@ -465,19 +465,23 @@ class SwanVisitor(ASTVisitor):
 		for n in node.getChildNodes():
 			self.out.write("console.log(")
 			self.dispatch(n)
-			self.out.write(".valueOf());\n")
+			self.out.write(".__str__());\n")
 			
 	#Print with \n
 	def visitPrintnl(self, node):
 		for n in node.getChildNodes():
 			self.out.write("console.log(")
 			self.dispatch(n)
-			self.out.write('.valueOf()+"\\n");\n')
+			self.out.write('.__str__()+"\\n");\n')
 
+	flagmap = {'OP_APPLY':'get','OP_ASSIGN':'set','OP_DELETE':'del'}
+	
 	#From "asdf"[1:3]		
-	def visitSlice(self, node, *args):
+	def visitSlice(self, node, expr = None):
+		#print "%s : %s : %s : %s : %s" % (node.expr, node.flags, node.lower, node.upper, expr)
 		self.dispatch(node.expr)
-		self.out.write(".slice(")
+		
+		self.out.write(".__%sslice__(" % self.flagmap[node.flags])
 		if not node.lower:
 			self.out.write("0")
 		else:
@@ -485,11 +489,14 @@ class SwanVisitor(ASTVisitor):
 		if node.upper:
 			self.out.write(", ")
 			self.dispatch(node.upper)
+		if node.flags == 'OP_ASSIGN':
+			self.out.write(",")
+			self.dispatch(expr)
 		self.out.write(")")
 		
 	#From "asdf"[1:3:4]
 	def visitSliceobj(self, node, *args):
-		self.out.write(".stepSlice(")
+		self.out.write("slice(")
 		self.dispatch(node.nodes[0])
 		self.out.write(", ")
 		self.dispatch(node.nodes[1])
@@ -498,14 +505,32 @@ class SwanVisitor(ASTVisitor):
 		self.out.write(")")
 		
 	#Dictionary/Tuple access
-	def visitSubscript(self, node, *args):
+	def visitSubscript(self, node, expr=None):
+		#print "%s : %s : %s : %s" % (node.expr, node.flags, node.subs, expr)
 		self.dispatch(node.expr)
-		if isinstance(node.subs[0], Sliceobj):
-			self.dispatch(node.subs[0])
-		else:
-			self.out.write('[')
-			self.dispatch(node.subs[0])
-			self.out.write(']')
+		self.out.write(".__%sitem__(" % self.flagmap[node.flags])
+		self.dispatch(node.subs[0] if len(node.subs)==1 else Tuple(node.subs))
+		if node.flags == 'OP_ASSIGN':
+			self.out.write(",")
+			self.dispatch(expr)
+		self.out.write(")")
+		# if node.flags == 'OP_APPLY':
+		# 	self.dispatch(node.expr)
+		# 	self.out.write(".__getitem__(")
+		# 	self.dispatch(node.subs[0] if len(node.subs)==1 else Tuple(node.subs))
+		# 	self.out.write(")")
+		# if node.flags == 'OP_DELETE':
+		# 	self.dispatch(node.expr)
+		# 	self.out.write(".__delitem__(")
+		# 	self.dispatch(node.subs[0] if len(node.subs)==1 else Tuple(node.subs))
+		# 	self.out.write(")")
+		# self.dispatch(node.expr)
+		# if isinstance(node.subs[0], Sliceobj):
+		# 	self.dispatch(node.subs[0])
+		# else:
+		# 	self.out.write('[')
+		# 	self.dispatch(node.subs[0])
+		# 	self.out.write(']')
 			
 	#Try/exceptions
 	def visitTryExcept(self, node):
@@ -644,54 +669,3 @@ class SwanVisitor(ASTVisitor):
 		print "Visiting a GenExprInner node"
 		for n in node.getChildNodes():
 			self.dispatch(n)
-
-			# function UIElement_UIElement() {
-			#     if (UIElement_UIElement.prototype.hasOwnProperty("__init__")) {
-			#         this.__init__(arguments);
-			#     }
-			# }
-			# _ = UIElement_UIElement.prototype
-			# // _.__init__ = function (self){
-			# // console.log(new String("WHy not!")+"n")
-			# // }
-			# _.cock = function(){
-			# 	console.log("COCK")
-			# }
-			# 
-			# function TextBox_TextBox() {
-			#     if (TextBox_TextBox.prototype.hasOwnProperty("__init__")) {
-			#         TextBox_TextBox.prototype.__init__(arguments);
-			#     }
-			# }
-			# extend(TextBox_TextBox, UIElement_UIElement)
-			# 
-			#  _ = TextBox_TextBox.prototype
-			#  _.__init__ = function() {
-			# 	this.num = 3
-			#     console.log(new String("Because") + "\n")
-			# }
-			# 
-			# 
-			# function PasswordBox_PasswordBox() {
-			# 	//PasswordBox_PasswordBox.superclass.apply(this, arguments)
-			#     PasswordBox_PasswordBox.prototype.__init__.apply(this, arguments);
-			# }
-			# extend(PasswordBox_PasswordBox, TextBox_TextBox)
-			# 
-			#  _ = PasswordBox_PasswordBox.prototype
-			#  _.__init__ = function(a, b, c) {
-			# 	console.log(this)
-			# 	//this.constructor.superclass.apply(this, arguments)
-			# 	this.num = this.num + 5
-			#     console.log(new String("I say") + "\n")
-			# }
-			# 
-			# 
-			# 
-			# 
-			# //ui_elem = new TextBox_TextBox()
-			# // ui_elem2 = new PasswordBox_PasswordBox()
-			# ui_elem3 = new PasswordBox_PasswordBox("boom","boom","pow")
-			# console.log(ui_elem3.num)
-			# ui_elem3.cock()
-			# // ui_elem3.cock()

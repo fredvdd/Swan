@@ -10,7 +10,7 @@
 //<![CDATA[
 
 len = function(l){
-	return l.length;
+	return l.__len__();
 }
 
 map = function(f, l){
@@ -69,25 +69,6 @@ init = function(){
 	%%modulename%%_launch()
 }
 
-Dict = function(content){
-	for(x in content){
-		if(content.hasOwnProperty(x)){
-			this[x] = content[x]
-		}
-	}
-}
-extend(Dict, Object)
-
-Dict.prototype.iteritems = function(){
-	r = []
-	for(x in this){
-		if(this.hasOwnProperty(x)){
-			r.append([x,this[x]])
-		}
-	}
-	return r;
-}
-
 StarArgs = function(in_arr){
 	this.arr = in_arr
 }
@@ -118,6 +99,9 @@ Object.prototype.__gt__ = function(a){
 }
 Object.prototype.__ge__ = function(a){
 	return this.valueOf() >= a
+}
+Object.prototype.__str__ = function(){
+	return new String(this.valueOf())
 }
 
 Number.prototype.__neg__ = function(){
@@ -175,13 +159,13 @@ Number.prototype.__xor__ = function(a){
 Number.prototype.__iadd__ = function(a){
 	this.valueOf() += a
 }
- Number.prototype.__iand__ = function(a){
+Number.prototype.__iand__ = function(a){
 	this.valueOf() = this.valueOf() & a
 }
- Number.prototype.__idiv__ = function(a){
+Number.prototype.__idiv__ = function(a){
 	this.valueOf() /= a
 }
- Number.prototype.__ifloordiv__ = function(a){
+Number.prototype.__ifloordiv__ = function(a){
 	this.valueOf() = Math.floor(this.value, a) 
 }
 Number.prototype.__ilshift__ = function(a){
@@ -190,7 +174,7 @@ Number.prototype.__ilshift__ = function(a){
  Number.prototype.__imod__ = function(a){
 	this.valueOf() = this.valueOf() % a
 }
- Number.prototype.__imul__ = function(a){
+Number.prototype.__imul__ = function(a){
 	this.valueOf() *= a
 }
 Number.prototype.__ior__ = function(a){
@@ -199,7 +183,7 @@ Number.prototype.__ior__ = function(a){
 Number.prototype.__ipow__ = function(a){
 	this.valueOf() = Math.pow(this.value, a)
 }
- Number.prototype.__irshift__ = function(a){
+Number.prototype.__irshift__ = function(a){
 	this.valueOf() = this.valueOf() >> a
 }
 Number.prototype.__isub__ = function(a){
@@ -219,7 +203,64 @@ String.prototype.__iadd__ = function(a){
 
 String.prototype.strip = function() { return this.replace(/^\s+|\s+$/, ''); };
 
-Array.prototype.extSlice = function(start, end){
+slice = function(start, end, step){
+	return new SliceObj(start,end,step)
+}
+SliceObj = function(start,end,step){
+	this.start = start
+	this.end = end
+	this.step = step
+}
+extend(SliceObj, Object)
+SliceObj.prototype.name = "slice"
+
+Array.prototype.__setitem__ = function(index, value){
+	if(index.__proto__.name=='slice'){
+		var start = (index.start < 0) ? index.start+this.length : index.start; 
+		var end   = (index.end  <= 0) ? index.end+this.length   : index.end; 
+		var step  = index.step;
+		for(i = start, j=0; i < end; i += step, j++){
+			if(this[i]){
+				this[i] = value[j]
+			}
+		}
+	}else{
+		this[index] = value;
+	}
+}
+Array.prototype.__getitem__ = function(index){
+	if(index.__proto__.name=='slice'){
+		var start = (index.start < 0) ? index.start+this.length : index.start; 
+		var end   = (index.end  <= 0) ? index.end+this.length   : index.end; 
+		var step  = index.step;
+		var r = [];
+		for(i = start; i < end; i += step){
+			if(this[i]){
+				r.push(this[i]);
+			}
+		}
+		return r
+	}else{
+		return this[index]
+	}
+}
+Array.prototype.__delitem__ = function(index){
+	if(index.__proto__.name=='slice'){
+		var start = (index.start < 0) ? index.start+this.length : index.start; 
+		var end   = (index.end  <= 0) ? index.end+this.length   : index.end; 
+		var step  = index.step;
+		var j = 0
+		for(i = start; i < end; i += step){
+			if(this[i-j]){
+				this.splice(i-j,1)
+				j++
+			}
+		}
+	}else{
+		this.splice(index, 1)
+	}
+}
+Array.prototype.__getslice__ = function(start, end){
 	if(start < 0){
 		start += this.length
 	}
@@ -228,25 +269,88 @@ Array.prototype.extSlice = function(start, end){
 	}
 	return this.slice(start, end)
 }
-
-Array.prototype.stepSlice = function(start, end, step){
-	r = [];
+Array.prototype.__setslice__ = function(start, end, seq){
 	if(start < 0){
 		start += this.length
 	}
-	if(end <= 0){
+	if(end < 0){
 		end += this.length
 	}
-	for(i = start; i < end; i += step){
-		r.push(this[i]);
-	}
-	return r
+	Array.prototype.splice.apply(this, new Array(start, end-start).concat(seq))
 }
-
+Array.prototype.__delslice__ = function(start,end){
+	if(start < 0){
+		start += this.length
+	}
+	if(end < 0){
+		end += this.length
+	}
+	this.splice(start,end-start)
+}
+Array.prototype.__len__ = function(){
+	return this.length
+}
+Array.prototype.__str__ = function(){
+	return new String("[" + this.valueOf() + "]")
+}
 Array.prototype.append = function(a){
 	this.push(a)
 }
-console.log("a" < "ab")
+
+Dict = function(content){
+	this.__proto__.length = 0
+	for(x in content){
+		if(content.hasOwnProperty(x)){
+			this[x] = content[x]
+			this.__proto__.length += 1
+		}
+	}
+}
+extend(Dict, Object)
+
+Dict.prototype.__len__ = function(){
+	return this.__proto__.length
+}
+
+Dict.prototype.__setitem__ = function(key, value){
+	if(!this.hasOwnProperty(key)){
+		this.__proto__.length+=1
+	}
+	this[key] = value
+}
+
+Dict.prototype.__getitem__ = function(key){
+	return this[key]
+}
+
+Dict.prototype.__delitem__ = function(key){
+	delete this[key]
+}
+
+Dict.prototype.__str__ = function(){
+	str = new String("{")
+	for(x in this){
+		if(this.hasOwnProperty(x)){
+			str += x.__str__()
+			str += ": "
+			str += this[x].__str__()
+			str += ", "
+		} 
+	}
+	return str.substring(0, str.length-2) + "}"
+}
+
+Dict.prototype.iteritems = function(){
+	r = []
+	for(x in this){
+		if(this.hasOwnProperty(x)){
+			r.append([x,this[x]])
+		}
+	}
+	return r;
+}
+
+
 %%compilation%%
 
 		//]]>

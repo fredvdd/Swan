@@ -31,6 +31,7 @@ def translate(modulename, modulepath, outstream):
 	w = ExampleASTVisitor()
 	w.VERBOSE = 1
 	walk(ast, v, v)
+	#print v.out
 	return (v.deps, v.out)
 			
 def findpath(modname):
