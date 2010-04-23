@@ -34,6 +34,18 @@ range = function(sta, sto, ste){
 	return r;
 }
 
+isinstance = function(inst, clas){
+	var target = clas.prototype.name;
+	var proto = inst.__proto__;
+	while(proto){
+		if(proto.name == target){
+			return new Boolean(true);
+		}
+		proto = proto.__proto__;
+	}
+	return new Boolean(false);
+}
+
 str = function(a){
 	return new String(a)
 }

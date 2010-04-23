@@ -252,12 +252,7 @@ class SwanVisitor(ASTVisitor):
 			self.out.write(n)
 			self.out.write(");\n")
 		self.out.write("_="+self.module.replace(".", "_") + "_"+node.name+".prototype\n")
-		# if node.bases:
-		# 	self.out.write("= ")
-		# 	self.dispatch(node.bases[0])
-		# 	self.out.write("();\n")
-		# else:
-		# 	self.out.write("\n")
+		self.out.write('_.name = "%s";\n' % node.name)
 		self.toplevel = False
 		self.dispatch(node.code, "_.")
 		self.toplevel = True
