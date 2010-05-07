@@ -5,11 +5,12 @@ from time import time, gmtime
 
 class Request(object):
 	
-	def __init__(self, parent, socket, rfile, wfile, path, headers, params):
+	def __init__(self, parent, socket, rfile, wfile, method, path, headers, params):
 		self.parent = parent
 		self.socket = socket
 		self.wfile = wfile
 		self.rfile = rfile
+		self.method = method
 		self.path = path
 		self.headers = headers
 		self.params = params
@@ -18,14 +19,18 @@ class Request(object):
 		return "request for %s" % self.path
 	
 	def start_response(self):
-		return Response(self, self.wfile, )
+		return Response(self, self.wfile)
 		
 	def try_repeat(self):
 		if self.headers.has_key('Connection') and self.headers['Connection'] == 'close':
 			self.socket.close()
 		else:
-			#print "not closing connection"
 			self.parent.handle_request(self.socket, self.rfile, self.wfile)
+			
+	def get_body(self):
+		length = self.headers['Content-length']
+		content = self.rfile.read(length)
+		return content
 
 class Response(object):
 	
@@ -33,32 +38,45 @@ class Response(object):
 		self.partner = partner
 		self.wfile = wfile
 
-	def done(self):
+	def send(self):
 		self.wfile.flush()
 		self.partner.try_repeat()
 		
-	def send(self, string):
+	def and_content(self, string):
+		self.and_header("Content-length", len(string))
+		self.wfile.write("\r\n")
 		self.wfile.write(string)
 		return self
 	
-	def set_status(self, code):
+	def with_status(self, code):
 		name, message = BaseHTTPRequestHandler.responses[code]
 		self.wfile.write("HTTP/1.1 %s %s\n" % (code, name))
 		self.date_header()
+		self.connection_header()
 		return self
 	
-	def set_header(self, key, value):
+	def with_content_type(self, ctype):
+		return self.and_header("Content-type", ctype)
+	
+	def and_header(self, key, value):
 		self.wfile.write("%s:%s\n" % (key,value))
 		return self
 	
-	def set_headers(self, header_dict):
-		for k, v in header_dict:
-			self.set_header(k, v)
+	def and_headers(self, headers):
+		try:
+			l = headers.iteritems()
+		except AttributeError:
+			l = header_dict
+		for k, v in l:
+			self.and_header(k, v)
 		return self
-	
-	def end_headers(self):
-		self.wfile.write("\r\n")
-		return self
+		
+	def connection_header(self):
+		if not self.partner.headers.has_key('Connection'):
+		 	connection = "close"
+		else:
+			 connection = self.partner.headers['Connection']
+		self.and_header('Connection', connection)
 		
 	def date_header(self):
 		timestamp = time()
@@ -67,15 +85,21 @@ class Response(object):
                 self.weekdayname[wd],
                 day, self.monthname[month], year,
                 hh, mm, ss)
-		self.set_header("Date", datetime)
+		self.and_header("Date", datetime)
 	
 	weekdayname = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 	monthname = [None, 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
 	                 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 	
-	def send_error(self, error_code, message):
-		name, more = BaseHTTPRequestHandler.responses[error_code]
-		content = 	"""<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+	def with_error(self, error_code, message):
+		return ErrorResponse(self.partner, self.wfile, error_code, message)
+
+class ErrorResponse(Response):
+	
+	def __init__(self, partner, wfile, code, message):
+		Response.__init__(self, partner, wfile)
+		name, more = BaseHTTPRequestHandler.responses[code]
+		self.content = 	"""<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
 		<html><head>
 		<title>%(code)d %(name)s</title>
 		</head><body>
@@ -85,12 +109,17 @@ class Response(object):
 		<hr>
 		<address>Swan/0.1 (OSX) Server at localhost on port 8080</address>
 		</body></html>
-		"""	% {'code': error_code, 'name' : name, 'more': more, 'message': message}
+		"""	% {'code': code, 'name' : name, 'more': more, 'message': message}
 		
-		self.wfile.write("HTTP/1.1 %s %s" % (error_code, name))
-		self.set_headers([
-			("Content-type", "text/html"),
-			("Connection", "close"),
-			("Content-Length", len(content))
-		]).end_headers().send(content).done()
+		self.wfile.write("HTTP/1.1 %s %s\n" % (code, name))
+		self.date_header()
+		self.and_headers({
+			"Content-type": "text/html",
+			"Connection": "close",
+			"Content-Length": len(self.content)
+		})
+	
+	def send(self):
+		self.wfile.write(self.content)
+		Response.send(self)
 		

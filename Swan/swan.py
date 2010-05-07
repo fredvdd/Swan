@@ -11,6 +11,16 @@ class Users(DatabaseHandler):
 	name = TextField()
 	email = EmailField()
 
+class Statuses(DatabaseHandler):
+	status_id = IntegerField()
+	user_id = IntegerField()
+	status = TextField()
+	timestamp = TimeField()
+
+class Follows(DatabaseHandler):
+	f_id = IntegerField()
+	user_id = IntegerField()
+	followed_user = IntegerField()
 	
 class Launcher(LocalActor):
 	
@@ -22,14 +32,16 @@ class Launcher(LocalActor):
 		
 		file_handlers = get_pool(FileHandler, "/Users/fred/swan/Swan/Test/html/", file_workers)
 		user_handlers = get_pool(Users, db_workers)
+		status_handlers = get_pool(Statuses, db_workers)
+		follow_handlers = get_pool(Follows, db_workers)
 	
 		#create registry pool
 		defaults = get_pool(DefaultHandler)
 		registries = get_pool(Registry, defaults)
 		
-		all(registries).register('/files/(?P<path>.*)', file_handlers)
-		all(registries).register('/db/users/(?P<col>.*)/(?P<val>.*)', user_handlers, 'detail')
-		all(registries).register('/db/users', user_handlers)
+		all(registries).register('^/files/(?P<path>.*)$', file_handlers)
+		all(registries).register('^/db/users/(?P<col>.*)/(?P<val>.*)$', user_handlers, 'detail')
+		all(registries).register('^/db/users$', user_handlers)
 		
 		#launch server with registry pool
 		Server("localhost", 8080, registries)

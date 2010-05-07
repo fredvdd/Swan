@@ -43,13 +43,14 @@ class RequestHandler(LocalActor, BaseHTTPRequestHandler):
 		log.debug(self, "Conection from %s:%d" % sock.getpeername())
 		rfile = sock.makefile('rb',-1)
 		wfile = sock.makefile('wb',0)
-		
 		self.handle_request(sock, rfile, wfile)
 	
 	def handle_request(self, sock, rfile, wfile):
+		#log.debug(self, "Handling connection from %s:%d" % sock.getpeername())
 		self.rfile = rfile
 		sock.settimeout(2.0)
 		self.raw_requestline = self.rfile.readline()
+		log.debug(self, "Request headline:%s" % self.raw_requestline)
 		sock.settimeout(None) #disable timeouts
 		if not self.raw_requestline or not self.parse_request():
 			log.debug(self, "Closing connection to %s:%d" % sock.getpeername())
@@ -59,8 +60,8 @@ class RequestHandler(LocalActor, BaseHTTPRequestHandler):
 		#got command, path, and request_version and headers
 		command, path, headers = (self.command, self.path, self.headers)
 		(responder_pool, specifier, params) = one(self.registries).lookup(path)
-		request = Request(self, sock, rfile, wfile, path,  headers, params)
-		one(responder_pool).respond(command, specifier, request)
+		request = Request(self, sock, rfile, wfile, command, path,  headers, params)
+		one(responder_pool).respond(request, specifier)
 
 	def log_message(self, format, *args):
 		pass

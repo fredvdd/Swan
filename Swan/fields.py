@@ -10,3 +10,6 @@ class TextField(Field):
 	
 class EmailField(TextField):
 	pass
+
+class TimeField(Field):
+	pass

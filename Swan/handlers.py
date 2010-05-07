@@ -12,15 +12,21 @@ class Handler(StaticActor):
 	def birth(self):
 		pass
 	
-	def respond(self, method, specifier, request):
+	def respond(self, request, specifier):
 		response = request.start_response()
+		method = request.method
 		if method == 'OPTIONS':
 			self.options(specifier, request, response)
 		handle_name = "%s_%s" % (method.lower(), specifier) if specifier else method.lower()
-		handle_method = getattr(self, handle_name)
+		handle_method = getattr(self, handle_name, self.no_method)
+		# log.debug(self, "Handling request with %s" % handle_method)
 		handle_method(request, response)
+			
 	
-	def options(self, specifier, request):
+	def no_method(self, request, response):
+		response.with_error(405, "The method %s is not supported on this resource" % request.method).send()
+	
+	def options(self, specifier, request, response):
 		print "OPTIONS for " + request.path
 		pattern = "%s" if not specifier else "%s_" + specifier
 		methods = ['get', 'put', 'delete', 'post', 'head']
@@ -31,19 +37,15 @@ class Handler(StaticActor):
 		content = reduce(lambda a,b: a+b, map(lambda x: "<method>%s</method>" % x, options))
 		content = "<methods>" + content + "</methods>"
 		log.debug(self, "OPTIONS for %s are %s" % (request.path, content))
-		connection = "close" if not request.headers.has_key('Connection') else request.headers['Connection']
-		request.set_status(200).set_headers([
-			("Content-type", "text/xml"),
-			("Connection", connection),
-			("Content-length", len(content))
-		]).end_headers().respond("%s" % content).done()
+		
+		response.with_status(200).and_content_type("text/xml").and_content("%s" % content).send()
 
 class DefaultHandler(Handler):
 	
 	def do404(self, request, response):
 		path = request.path
 		log.debug(self, "Resource for %s not found" % path)
-		response.send_error(404, "Resource at %s could not be found" % path)
+		response.with_error(404, "Resource at %s could not be found" % path).send()
 	
 	head = get = put = post = delete = do404
 
@@ -71,13 +73,8 @@ class FileHandler(Handler):
 	def send_get_response(self, content, request, response, content_type):
 		path = request.params['path']
 		if content:
-			connection = "close" if not request.headers.has_key('Connection') else request.headers['Connection']
 			log.debug(self, "responding with content of %s for %s" % (path, request.socket))
-			response.set_status(200).set_headers([
-				("Content-type", content_type),
-			 	("Connection", connection),
-				("Content-length", len(content))
-			]).end_headers().send("%s" % content).done()
+			response.with_status(200).and_content_type(content_type).and_content("%s" % content).send()
 			log.debug(self, "finished handling %s for %s" % (path, request.socket))
 		else:
 			log.error(self, "couldn't find %s for %s" % (path, request.socket))
@@ -100,31 +97,24 @@ class DatabaseHandler(Handler):
 		rows = one(self.workers).execute("SELECT %s FROM %s" % (self.fieldstring, self.table))
 		dicts = [dict(zip(self.fieldnames, row)) for row in rows]
 		enc = json.dumps({self.table : dicts})
-		connection = "close" if not request.headers.has_key('Connection') else request.headers['Connection']
-		response.set_status(200).set_headers([
-			("Content-type", "application/json"),
-		 	("Connection", connection),
-			("Content-length", len(enc))
-		]).end_headers().send(enc).done()
+		response.with_status(200).with_content_type("application/json").and_content(enc).send()
 		
 	def get_detail(self, request, response):
 		col, val = (request.params['col'], request.params['val'])
 		sql = "SELECT %s FROM %s WHERE %s = ?" % (self.fieldstring, self.table, col)
 		rows = one(self.workers).execute(sql, (val,))
+		
 		dicts = [dict(zip(self.fieldnames, row)) for row in rows]
 		enc = json.dumps({self.table : dicts})
-		connection = "close" if not request.headers.has_key('Connection') else request.headers['Connection']
-		response.set_status(200).set_headers([
-			("Content-type", "application/json"),
-		 	("Connection", connection),
-			("Content-length", len(enc))
-		]).end_headers().send(enc).done()
+		response.with_status(200).with_content_type("application/json").and_content(enc).send()
 
-	def put(self):
+	def put(self, request, response):
 		pass
+		#elements = self.decode(request.get_body(), request.headers['Content-type'])[self.table]
+		#values = 
 	
-	def post(self):
+	def post(self, request, response):
 		pass
 		
-	def delete(self):
+	def delete(self, request, response):
 		pass
