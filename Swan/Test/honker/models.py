@@ -1,15 +1,15 @@
-from Swan.handlers import DatabaseHandler
+from Swan.db import Model
 from Swan.fields import *
 
-class Users(DatabaseHandler):
+class Users(Model):
 	name = TextField()
 	email = EmailField()
 
-class Statuses(DatabaseHandler):
-	user_id = ForeignKey('Users')
-	status = TextField()
+class Statuses(Model):
+	user_id = ForeignKey('Users', "statuses")
+	status = TextField(140)
 	timestamp = TimeField()
 
-class Follows(DatabaseHandler):
-	user_id = ForeignKey('Users')
-	followed_user = ForeignKey('Users')
+class Follows(Model):
+	user_id = ForeignKey('Users', "follows")
+	followed_user = ForeignKey('Users', "followed_by")
