@@ -5,8 +5,10 @@ from static import log, set_local_theatre
 from Util.exceptions import UncontactableLocatorException
 
 class TheatreRunner(signalutil.NewRunner):
-  def __init__(self, f):
+  def __init__(self, f, *args, **kwds):
     self.__f = f
+    self.__args = args
+    self.__kwds = kwds
     
   def begin(self):
     multicore = False
@@ -42,7 +44,7 @@ class TheatreRunner(signalutil.NewRunner):
       # This very process becomes a theatre too
       loc = "%s:%s" % (settings.local_name, settings.local_port)   
       self.theatre = theatre.Theatre(loc, settings.network_locator_socket, 
-        actor_store, store_lock, current_id, id_lock, current_creator, creator_lock, port_range, self.__f, self.processes)
+        actor_store, store_lock, current_id, id_lock, current_creator, creator_lock, port_range, self.__f, self.__args, self.__kwds, self.processes)
    
     else:
       # We can't take advantage of multicore (older python) or don't want to (only one core)
@@ -57,6 +59,6 @@ class TheatreRunner(signalutil.NewRunner):
     return 'TheatreRunner'
 
   
-def initialise(f):
-  TheatreRunner(f).start()
+def initialise(f, *args, **kwds):
+  TheatreRunner(f, *args, **kwds).start()
   

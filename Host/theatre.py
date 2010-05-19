@@ -24,7 +24,7 @@ except ImportError:
 
 class Theatre(object):
    
-  def __init__(self, here, manager_loc, core_store, store_lock, current_id, id_lock, current_creator, creator_lock, port_range, f = None, ps = None):
+  def __init__(self, here, manager_loc, core_store, store_lock, current_id, id_lock, current_creator, creator_lock, port_range, f = None, args = None, kwds = None, ps = None):
     log.debug(self, 'starting')
     self.__here = here
     port = ids.port_from_loc(here)
@@ -55,7 +55,7 @@ class Theatre(object):
 
     else:
       self.f = f
-      self.f()
+      self.f(*args, **kwds)
       self.__term.shell()
    
   def external_interface(self):

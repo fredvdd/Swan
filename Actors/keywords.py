@@ -177,8 +177,8 @@ def migrate_or_die():
   if atheatre:
     migrate_to(atheatre)
   
-def initialise(f):
-  runner.initialise(f)
+def initialise(f, *args, **kwds):
+  runner.initialise(f, *args, **kwds)
 
 
 def open_socket(port):
