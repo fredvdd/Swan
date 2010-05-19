@@ -27,8 +27,9 @@ class TimeField(Field):
 
 class ForeignKey(Field):
 	
-	def __init__(self, table):
+	def __init__(self, table, name):
 		self.table = table
+		self.name = name
 		
 	def field_type(self):
 		return 'integer not null references "%s"("id")' % (self.table)
