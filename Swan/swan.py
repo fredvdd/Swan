@@ -5,7 +5,7 @@ from Swan.server import Server
 from Swan.registry import Registry
 from Swan.handlers import FileHandler, DefaultHandler, DatabaseHandler
 from Swan.fields import Field, ForeignKey
-from Swan.db import Model, extract_models
+from Swan.db import *
 from Swan.Test.honker.models import Users, Statuses
 import sys
 
@@ -15,17 +15,15 @@ def init_db_models(modelpath):
 	print models
 	fkss = dict([[x,{}] for x in models])
 	for model in models:
-		print "Initialising " + model
 		fields = {}
-		for p in models[model].__mro__:
-			if issubclass(p, Model):
-				print "Inspecting " + str(p) + " for fields"
-				props = p.__dict__
-				for prop in props:
-					if isinstance(props[prop], Field):
-						fields[prop] = props[prop].__class__
-					if isinstance(props[prop], ForeignKey):
-						fk = props[prop]
+		for parent in models[model].__mro__:
+			if issubclass(parent, Model):
+				es = parent.__dict__
+				for e in es:
+					if isinstance(es[e], Field):
+						fields[e] = es[e].__class__
+					if isinstance(es[e], ForeignKey):
+						fk = es[e]
 						print fk.table + " -> " + model + "/" + fk.name
 						fkss[fk.table].update({fk.name:model})
 		models[model].fields = fields
@@ -49,10 +47,15 @@ class Launcher(LocalActor):
 			model_pool.all().set_pool(model_pool)
 			model_pools[x] = model_pool
 			
-		print model_pools
+		print "****"
 		
-		Statuses.filter(id=4)
-		Users.filter(name="Fred")
+		for user in Users.all().filter(id=less_than(3)):
+			print user
+		# print Users.filter(name="Fred")
+		# for x in Statuses.filter(id=5):
+		# 	print x,
+			
+		print "DOne"
 		
 		# file_handlers = get_pool(FileHandler, "/Users/fred/swan/Swan/Test/html/", file_workers)
 		# user_handlers = get_pool(Users, db_workers)

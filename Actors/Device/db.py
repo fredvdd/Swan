@@ -10,11 +10,11 @@ class Database(MobileActor):
 	def execute(self, sql, *params):
 		self.cursor.execute(sql, *params)
 		self.connection.commit()
-		return self.cursor.fetchall()
+		return (self.cursor.description, self.cursor.fetchall())
 	
 class SqliteDatabase(Database):
 	
 	def birth(self, filepath):
-		connection = sqlite3.connect(filepath)
+		connection = sqlite3.connect(filepath, detect_types=sqlite3.PARSE_COLNAMES)
 		Database.birth(self, connection)
 		
