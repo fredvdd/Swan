@@ -31,10 +31,7 @@ class ReferencePool(object):
   #   return self.actor_id.__hash__()
 
   def __str__(self):
-    str = "Actor with ids: "
-    for actor_id in self.actor_ids:
-      str = str + actor_id + " "
-    return str
+    return "Actors with ids: " + reduce(lambda a, s: a +", "+s, self.actor_ids )
 
   def one(self):
     return self.actors.next()
