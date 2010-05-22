@@ -10,7 +10,9 @@ class Database(MobileActor):
 	def execute(self, sql, *params):
 		self.cursor.execute(sql, *params)
 		self.connection.commit()
-		return (self.cursor.description, self.cursor.fetchall())
+		rows = self.cursor.fetchall()
+		result = (self.cursor.description, rows)
+		return result
 	
 class SqliteDatabase(Database):
 	

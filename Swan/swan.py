@@ -4,32 +4,11 @@ from Actors.Device.db import SqliteDatabase
 from Swan.server import Server
 from Swan.registry import Registry
 from Swan.handlers import FileHandler, DefaultHandler, DatabaseHandler
-from Swan.fields import Field, ForeignKey
-from Swan.db import *
-from Swan.Test.honker.models import Users, Statuses
+from Swan.Test.tester import Test
+from Swan.db import init_db_models
 import sys
 
-def init_db_models(modelpath):
-	print "Extracting models from " + modelpath
-	models = extract_models(modelpath)
-	print models
-	fkss = dict([[x,{}] for x in models])
-	for model in models:
-		fields = {}
-		for parent in models[model].__mro__:
-			if issubclass(parent, Model):
-				es = parent.__dict__
-				for e in es:
-					if isinstance(es[e], Field):
-						fields[e] = es[e].__class__
-					if isinstance(es[e], ForeignKey):
-						fk = es[e]
-						print fk.table + " -> " + model + "/" + fk.name
-						fkss[fk.table].update({fk.name:model})
-		models[model].fields = fields
-	for fks in fkss:
-		models[fks].set_names = fkss[fks]
-	return models
+
 	
 	
 class Launcher(LocalActor):
@@ -44,13 +23,22 @@ class Launcher(LocalActor):
 		model_pools = {}
 		for (x,y) in models.iteritems():
 			model_pool = get_pool(y, db_workers)
-			model_pool.all().set_pool(model_pool)
+			setting = model_pool.all().set_pool(model_pool)
 			model_pools[x] = model_pool
 			
 		print "****"
 		
-		for user in Users.all().filter(id=less_than(3)):
-			print user
+		t = Test()
+		print t.start()
+		
+		# for user in Users.get(name=equals('Fred')):
+		# 	print user
+		# 
+		# p = Users.get(name=equals('Pete'))
+		# print p
+		
+		# for user in Users.get(name=equals('Fred')):
+		# 	print user
 		# print Users.filter(name="Fred")
 		# for x in Statuses.filter(id=5):
 		# 	print x,
@@ -58,6 +46,7 @@ class Launcher(LocalActor):
 		print "DOne"
 		
 		# file_handlers = get_pool(FileHandler, "/Users/fred/swan/Swan/Test/html/", file_workers)
+		# print file_handlers
 		# user_handlers = get_pool(Users, db_workers)
 		# status_handlers = get_pool(Statuses, db_workers)
 		# follow_handlers = get_pool(Follows, db_workers)
