@@ -68,6 +68,13 @@ class ModelInstance(object):
 				asdf = SingleQuery(rel.join_table.pool.one(), rel.join_name, rel.join_table.instance_type, **fil)
 				self.__dict__[p] = asdf
 				
+	def __getattribute__(self, name):
+		attr = object.__getattribute__(self, name)
+		if isinstance(attr, ForeignRelation):
+			fil = {'id' : equals(object.__getattribute__(self,'id'))}
+			return RelationSet(attr,self.__model,self.__table,**fil)
+		return attr
+				
 		
 	def save(self):
 		if hasattr(self,"id"):
