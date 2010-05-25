@@ -119,7 +119,7 @@ class RelationSet(Query):
 		return Query.__repr__(self)
 		
 	def __iter__(self):
-		return Query.__repr__(self)
+		return Query.__iter__(self)
 	
 	def __getitem__(self, key):
 		# print "Getitem"

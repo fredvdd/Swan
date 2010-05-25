@@ -10,12 +10,12 @@ class Test(StaticActor):
 	
 	def start(self):
 		print User.get(name=equals('Fred'))
-		u = User.get(name=equals('Christopher'))
+		u = User.get(name=equals('Fred'))
 		print u.email
 		followers = u.followed_by
-		print type(followers[0])
-		print type(followers[0].user_id)
-		print followers[0].user_id
+		print type(followers)
+		for f in followers:
+			print f
 		# c = User.create(name="Steve",email="steve@example.com")
 		# print c.name
 		# c.save()

@@ -25,6 +25,6 @@ class Follow(Model):
 	followed_user = ForeignKey('User', "followed_by")
 	
 	def __repr__(self):
-		print "asdfasdfas"
-		print "Getting repr for Follow %s %s" % (type(self.user_id), type(self.followed_user))
-		return "%s follows %s" % (self.user_id, self.followed_user)
+		# print "asdfasdfas"
+		# print "Getting repr for Follow %s %s" % (type(self.user_id), type(self.followed_user))
+		return "%s follows %s" % (self.user_id.name, self.followed_user.name)
