@@ -1,9 +1,6 @@
 from Actors.keywords import *
-from Util.exceptions import *
 from Actors.Device.file import File
 from Swan.static import log
-from BaseHTTPServer import BaseHTTPRequestHandler
-import json
 import mimetypes as mt
 
 class Handler(StaticActor):

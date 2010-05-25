@@ -51,7 +51,8 @@ class RequestHandler(LocalActor, BaseHTTPRequestHandler):
 		self.wfile = wfile
 		sock.settimeout(2.0)
 		self.raw_requestline = self.rfile.readline()
-		log.debug(self, "Request headline:%s" % self.raw_requestline)
+		if self.raw_requestline:
+			log.debug(self, "%s" % self.raw_requestline.strip())
 		sock.settimeout(None) #disable timeouts
 		if not self.raw_requestline or not self.parse_request():
 			log.debug(self, "Closing connection to %s:%d" % sock.getpeername())
