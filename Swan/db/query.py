@@ -111,7 +111,9 @@ class RelationSet(Query):
 		
 	def _build_query_string(self, table):
 		t, j, c = (self.table, self.join_table, self.join_col)
-		query = "SELECT * FROM %s, %s WHERE %s.%s = %s.id" % (t, j, t, c, j)
+		fields = self.relation.instance_type.__dict__['__fields']
+		selection = reduce(lambda s, k: "%s, %s" % (s,k), [f for f in fields if not f =='id'], t + ".id")
+		query = "SELECT %s FROM %s, %s WHERE %s.%s = %s.id" % (selection, t, j, t, c, j)
 		query += " AND " + reduce(lambda s, (p,v): "%s.%s %s AND %s" % (self.join_table,p,v,s), self.filters.iteritems(), "")[:-4]
 		return query
 		
