@@ -3,10 +3,11 @@ from Actors.Device.file import File
 from Actors.Device.db import SqliteDatabase
 from Swan.server import Server
 from Swan.registry import Registry
-from Swan.handlers import FileHandler, DefaultHandler, DatabaseHandler
+from Swan.handlers import Handler, FileHandler, DefaultHandler, DatabaseHandler
 from Swan.Test.tester import Test
 from Swan.db import init_db_models
 import sys
+from inspect import isclass
 
 
 	
@@ -14,22 +15,35 @@ import sys
 class Launcher(LocalActor):
 	
 	def birth(self, path, models):
-		print path
+		print "Launching server for %s..." % path
 		#find resources in path.
 		#make a pool of each one.
+		print "Creating Worker pools..."
 		file_workers = pool([r.actor_id for r in [File() for n in range(0,5)]])
 		db_workers = pool([r.actor_id for r in [SqliteDatabase(path+"database") for n in range(0,5)]])
 		
-		model_pools = {}
+		model_pools = dict()
+		print "Creating Model pools..."
 		for (x,y) in models.iteritems():
 			model_pool = get_pool(y, db_workers)
 			setting = model_pool.all().set_pool(model_pool)
 			model_pools[x] = model_pool
 			
-		print "****"
-		
-		t = Test()
-		print t.start()
+		handlerpath = path.replace('/','.') + 'handlers'
+		print "Loading handlers from %s..." % handlerpath
+		handlermod = __import__(handlerpath, globals(), locals(), [''])
+		handler_pools = dict()
+		for ek in dir(handlermod):
+			ev = getattr(handlermod, ek)
+			if isclass(ev) and issubclass(ev, Handler):
+				if ev.__name__ == 'Handler' or ev.__name__ == 'FileHandler':
+					continue
+				handler_pools[x] = get_pool(ev)
+				
+		# print "****"
+		# 
+		# t = Test()
+		# print t.start()
 		
 		# for user in Users.get(name=equals('Fred')):
 		# 	print user

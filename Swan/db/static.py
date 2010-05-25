@@ -6,6 +6,7 @@ import types
 import Swan
 
 def extract_models(modelpath):
+	print "Extracting models from " + modelpath
 	module = __import__(modelpath, globals(), locals(), [''])
 	models = {}
 	for x in dir(module):
@@ -15,8 +16,8 @@ def extract_models(modelpath):
 
 
 def init_db_models(modelpath):
-	print "Extracting models from " + modelpath
 	models = extract_models(modelpath)
+	print "Initialising models %s" % [x for x in models]
 	fkss = dict([[x,{}] for x in models])
 	fieldss = dict([[x,{}] for x in models])
 	funcss = dict([[x,{}] for x in models])
