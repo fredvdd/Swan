@@ -31,7 +31,9 @@ def init_db_models(modelpath):
 						fields[e] = es[e].__class__
 					if isinstance(es[e], ForeignKey):
 						fk = es[e]
-						fkss[fk.table].update({fk.name:ForeignRelation(model, models[model], e)})
+						rel = ForeignRelation(model, models[model], e, fk.table, models[fk.table])
+						fkss[fk.table].update({fk.name:rel})
+						fields[e]=rel
 			else:
 				break
 		fieldss[model] = fields

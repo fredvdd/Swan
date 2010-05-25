@@ -9,13 +9,6 @@ class Database(MobileActor):
 		self.connection = connection
 		self.cursor = connection.cursor()
 	
-	def execute(self, sql, *params):
-		self.cursor.execute(sql, *params)
-		self.connection.commit()
-		rows = self.cursor.fetchall()
-		result = (self.cursor.description, rows)
-		return result
-	
 	def get_cursor(self):
 		cid = self.ids
 		self.ids += 1

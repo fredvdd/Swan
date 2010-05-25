@@ -9,7 +9,7 @@ class User(Model):
 		print "This is test"
 	
 	def __repr__(self):
-		return "Name: %s, Email:%s, %s" % (self.name, self.email, self.__dict__)
+		return "Name: %s, Email:%s" % (self.name, self.email)
 		
 
 class Status(Model):
@@ -23,3 +23,8 @@ class Status(Model):
 class Follow(Model):
 	user_id = ForeignKey('User', "follows")
 	followed_user = ForeignKey('User', "followed_by")
+	
+	def __repr__(self):
+		print "asdfasdfas"
+		print "Getting repr for Follow %s %s" % (type(self.user_id), type(self.followed_user))
+		return "%s follows %s" % (self.user_id, self.followed_user)

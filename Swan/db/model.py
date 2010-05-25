@@ -1,8 +1,9 @@
 from Swan.db.query import *
-from Swan.db.fields import IntegerField
+from Swan.db.fields import IntegerField, ForeignKey
 import Swan.db.static
 from Actors.keywords import *
 import types
+from Swan.static import log
 
 class Model(StaticActor):
 	id = IntegerField()
@@ -23,6 +24,7 @@ class Model(StaticActor):
 		return pool
 		
 	def execute_select(self, query):
+		log.debug(self, "Executing SQL: " + query)
 		cursor = self.workers.one().get_cursor().execute(query)
 		rows = cursor.fetchall()
 		cols = cursor.description()
@@ -55,7 +57,17 @@ class ModelInstance(object):
 	def __init__(self, model, table, **props):
 		self.__model = model
 		self.__table = table
-		self.__dict__.update(props)
+		#self.__dict__.update(props)
+		# print "Class fields %s" % (self.__class__.__dict__['__fields'])
+		fields = self.__class__.__dict__['__fields']
+		for p in props:
+			self.__dict__[p] = props[p]
+			if fields.has_key(p) and isinstance(fields[p], ForeignRelation):
+				rel = fields[p]
+				fil = dict({'id':"='%s'"%props[p]})
+				asdf = SingleQuery(rel.join_table.pool.one(), rel.join_name, rel.join_table.instance_type, **fil)
+				self.__dict__[p] = asdf
+				
 		
 	def save(self):
 		if hasattr(self,"id"):
