@@ -2,7 +2,6 @@ from Actors.keywords import *
 from Util.exceptions import *
 from Actors.Device.file import File
 from Swan.static import log
-from Swan.fields import *
 from BaseHTTPServer import BaseHTTPRequestHandler
 import json
 import mimetypes as mt
@@ -13,6 +12,7 @@ class Handler(StaticActor):
 		pass
 	
 	def respond(self, request, specifier):
+		log.debug(self, "responding to %s" % request)
 		response = request.start_response()
 		method = request.method
 		if method == 'OPTIONS':
@@ -20,7 +20,7 @@ class Handler(StaticActor):
 		handle_name = "%s_%s" % (method.lower(), specifier) if specifier else method.lower()
 		handle_method = getattr(self, handle_name, self.no_method)
 		# log.debug(self, "Handling request with %s" % handle_method)
-		handle_method(request, response)
+		handle_method(request, response, **request.params)
 			
 	
 	def no_method(self, request, response):
@@ -38,7 +38,10 @@ class Handler(StaticActor):
 		content = "<methods>" + content + "</methods>"
 		log.debug(self, "OPTIONS for %s are %s" % (request.path, content))
 		
-		response.with_status(200).and_content_type("text/xml").and_content("%s" % content).send()
+		response.with_status(200).with_content_type("text/xml").and_content("%s" % content).send()
+	
+	def __repr__(self):
+		return "%s Handler" % (self.__class__.__name__)
 
 class DefaultHandler(Handler):
 	
@@ -85,36 +88,36 @@ class FileHandler(Handler):
 	
 class DatabaseHandler(Handler):
 	
-	def birth(self, workers):
-		self.workers = workers
-		clazz = self.__class__
-		self.table = clazz.__name__
-		self.fields = [(x,y) for x,y in clazz.__dict__.iteritems() if isinstance(y, Field)]
-		self.fieldnames = [x for x,y in self.fields]
-		self.fieldstring = reduce(lambda a,b: "%s, %s" % (a,b), self.fieldnames)
+	#def birth(self, workers):
+		#self.workers = workers
+		#clazz = self.__class__
+		#self.table = clazz.__name__
+		#self.fields = [(x,y) for x,y in clazz.__dict__.iteritems() if isinstance(y, Field)]
+		#self.fieldnames = [x for x,y in self.fields]
+		#self.fieldstring = reduce(lambda a,b: "%s, %s" % (a,b), self.fieldnames)
 		
-	def get(self, request, response):
-		rows = one(self.workers).execute("SELECT %s FROM %s" % (self.fieldstring, self.table))
-		dicts = [dict(zip(self.fieldnames, row)) for row in rows]
-		enc = json.dumps({self.table : dicts})
-		response.with_status(200).with_content_type("application/json").and_content(enc).send()
+	#def get(self, request, response):
+		#rows = one(self.workers).execute("SELECT %s FROM %s" % (self.fieldstring, self.table))
+		#dicts = [dict(zip(self.fieldnames, row)) for row in rows]
+		#enc = json.dumps({self.table : dicts})
+		#response.with_status(200).with_content_type("application/json").and_content(enc).send()
 		
-	def get_detail(self, request, response):
-		col, val = (request.params['col'], request.params['val'])
-		sql = "SELECT %s FROM %s WHERE %s = ?" % (self.fieldstring, self.table, col)
-		rows = one(self.workers).execute(sql, (val,))
+	#def get_detail(self, request, response):
+		#col, val = (request.params['col'], request.params['val'])
+		#sql = "SELECT %s FROM %s WHERE %s = ?" % (self.fieldstring, self.table, col)
+		#rows = one(self.workers).execute(sql, (val,))
 		
-		dicts = [dict(zip(self.fieldnames, row)) for row in rows]
-		enc = json.dumps({self.table : dicts})
-		response.with_status(200).with_content_type("application/json").and_content(enc).send()
+		#dicts = [dict(zip(self.fieldnames, row)) for row in rows]
+		#enc = json.dumps({self.table : dicts})
+		#response.with_status(200).with_content_type("application/json").and_content(enc).send()
 
-	def put(self, request, response):
-		pass
-		#elements = self.decode(request.get_body(), request.headers['Content-type'])[self.table]
-		#values = 
+	#def put(self, request, response):
+		#pass
+		##elements = self.decode(request.get_body(), request.headers['Content-type'])[self.table]
+		##values = 
 	
-	def post(self, request, response):
-		pass
+	#def post(self, request, response):
+		#pass
 		
-	def delete(self, request, response):
+	#def delete(self, request, response):
 		pass

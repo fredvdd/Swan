@@ -20,4 +20,5 @@ class Registry(StaticActor):
 		return (self.default_handlers, None, dict())
 	
 	def register(self, pattern, handler, specifier=None):
+		log.debug(self, "Register %s to handle %s, specifier %s" % (handler, pattern,specifier))
 		self.registry[re.compile(pattern)] = (handler, specifier)

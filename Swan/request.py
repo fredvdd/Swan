@@ -1,7 +1,10 @@
 from Actors.keywords import *
 from BaseHTTPServer import BaseHTTPRequestHandler
 from time import time, gmtime
-
+from json import JSONEncoder, dumps, loads
+from Swan.db.model import ModelInstance
+from Swan.db.query import *
+#from Swan.db.fields import *
 
 class Request(object):
 	
@@ -42,7 +45,8 @@ class Response(object):
 		self.wfile.flush()
 		self.partner.try_repeat()
 		
-	def and_content(self, string):
+	def and_content(self, content):
+		string=self.encode(self.content_type, content)
 		self.and_header("Content-length", len(string))
 		self.wfile.write("\r\n")
 		self.wfile.write(string)
@@ -56,6 +60,7 @@ class Response(object):
 		return self
 	
 	def with_content_type(self, ctype):
+		self.content_type = ctype
 		return self.and_header("Content-type", ctype)
 	
 	def and_header(self, key, value):
@@ -93,6 +98,43 @@ class Response(object):
 	
 	def with_error(self, error_code, message):
 		return ErrorResponse(self.partner, self.wfile, error_code, message)
+
+	def encode(self, content_type, content):
+		thejson = dumps(content, cls=ModelJSONEncoder)
+		#print loads(thejson)
+		#print thejson
+		return thejson
+
+class ModelJSONEncoder(JSONEncoder):
+      
+	def __birth__(self, *args, **kwds):
+		JSONEncoder.__init__(self, *args, **kwds)
+
+	def default(self, obj):
+		print "Special encoder! %s "
+		if isinstance(obj, ModelInstance):
+			#print "Encoding an model %s" % getattr(obj.__class__, '__fields')
+			fields = getattr(obj.__class__, '__fields')
+			objdict = {}
+			for (f,t) in fields.iteritems():
+				if not isinstance(t, ForeignRelation):
+					objdict[f] = getattr(obj,f)
+			print objdict
+			encoded = JSONEncoder.encode(self, objdict)
+			#print "Encoded " + encoded
+			return encoded
+		if isinstance(obj, RelationSet) or isinstance(obj, Query):
+			#print "Got a model set!"
+			#models_encoded = reduce(lambda a, o: "%s,%s"%(a,self.default(o)), obj)
+			string = "["
+			for o in obj:
+				print o, type(o)
+				string += self.default(o)
+			string += "]"
+			#print "String: " + string
+			return string
+		    #return "[" + models_encoded + "]"
+		return JSONEncoder.default(self,obj)
 
 class ErrorResponse(Response):
 	

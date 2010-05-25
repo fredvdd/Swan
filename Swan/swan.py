@@ -24,11 +24,17 @@ class Launcher(LocalActor):
 		
 		model_pools = dict()
 		print "Creating Model pools..."
-		for (x,y) in models.iteritems():
-			model_pool = get_pool(y, db_workers)
+		for (n,m) in models.iteritems():
+			model_pool = get_pool(m, db_workers)
 			setting = model_pool.all().set_pool(model_pool)
-			model_pools[x] = model_pool
-			
+			model_pools[n] = model_pool
+		
+		print "Creating default handlers..."
+		defaults = get_pool(DefaultHandler)
+		print "Creating registry..."
+		registries = get_pool(Registry, defaults)
+		
+		  
 		handlerpath = path.replace('/','.') + 'handlers'
 		print "Loading handlers from %s..." % handlerpath
 		handlermod = __import__(handlerpath, globals(), locals(), [''])
@@ -38,7 +44,11 @@ class Launcher(LocalActor):
 			if isclass(ev) and issubclass(ev, Handler):
 				if ev.__name__ == 'Handler' or ev.__name__ == 'FileHandler':
 					continue
-				handler_pools[x] = get_pool(ev)
+				bindings = getattr(ev, 'bindings')
+				handler_pools[ek] = get_pool(ev)
+				for (s,p) in bindings.iteritems():
+					all(registries).register(p,handler_pools[ek],(s if not s == 'default' else None))
+				
 				
 		# print "****"
 		# 
@@ -57,7 +67,7 @@ class Launcher(LocalActor):
 		# for x in Statuses.filter(id=5):
 		# 	print x,
 			
-		print "DOne"
+		print "Starting server..."
 		
 		# file_handlers = get_pool(FileHandler, "/Users/fred/swan/Swan/Test/html/", file_workers)
 		# print file_handlers
@@ -76,7 +86,7 @@ class Launcher(LocalActor):
 		# # all(registries).register(
 		# 
 		# #launch server with registry pool
-		# Server("localhost", 8080, registries)
+		Server("localhost", 8080, registries)
 
 def start(path, models):
 	Launcher(path, models)
