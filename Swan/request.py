@@ -23,10 +23,10 @@ class Request(object):
 		return Response(self, self.wfile)
 		
 	def try_repeat(self):
-		if self.headers.has_key('Connection') and self.headers['Connection'] == 'close':
-			self.socket.close()
-		else:
+		if self.headers.has_key('Connection') and self.headers['Connection'] != 'close':
 			self.parent.handle_request(self.socket, self.rfile, self.wfile)
+		else:
+			self.socket.close()
 			
 	def get_body(self):
 		length = self.headers['Content-length']

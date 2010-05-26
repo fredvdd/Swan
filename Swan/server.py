@@ -12,7 +12,7 @@ connections and passes them on"""
 		log.debug(self, "SWAN Server starting...")
 		self.resources = resources #resource dictionary pool
 		self.handlers = []
-		self.add_handler(1)
+		self.add_handler(8)
 		self.sock = open_socket(port)
 		self.accept()
 		
@@ -58,7 +58,7 @@ class RequestHandler(LocalActor, BaseHTTPRequestHandler):
 			log.debug(self, "Closing connection to %s:%d" % sock.getpeername())
 			wfile.flush()
 			sock.close()
-			log.debug(self, "\n****************\n****************\n*****************")
+			log.debug(self, "\n****************\n****************\n****************")
 			return
 		#got command, path, and request_version and headers
 		#log.debug(self,"Command: %s,\n Path: %s,\n Headers: %s\n" % (self.command, self.path, self.headers))
