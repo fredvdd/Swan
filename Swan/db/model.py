@@ -1,7 +1,6 @@
-from Swan.db.query import *
-from Swan.db.fields import IntegerField, ForeignKey
-import Swan.db.static
 from Actors.keywords import *
+from Swan.db.fields import IntegerField, ForeignKey
+from Swan.db.query import Query, SingleQuery, ForeignRelation
 import types
 from Swan.static import log
 
@@ -55,6 +54,7 @@ class Model(StaticActor):
 class ModelInstance(object):
 	
 	def __init__(self, model, table, **props):
+		# log.debug(None, "Creating %s" % self.__class__.__name__)
 		self.__model = model
 		self.__table = table
 		#self.__dict__.update(props)
@@ -62,19 +62,32 @@ class ModelInstance(object):
 		fields = self.__class__.__dict__['__fields']
 		for p in props:
 			self.__dict__[p] = props[p]
-			if fields.has_key(p) and isinstance(fields[p], ForeignRelation):
+			if fields.has_key(p) and isinstance(fields[p], ForeignRelation) and not isinstance(props[p], SingleQuery):
 				rel = fields[p]
 				fil = dict({'id':"='%s'"%props[p]})
+				log.debug(None,"Creating query for %s" % p)
 				asdf = SingleQuery(rel.join_table.pool.one(), rel.join_name, rel.join_table.instance_type, **fil)
 				self.__dict__[p] = asdf
 				
 	def __getattribute__(self, name):
+		# log.debug(None, "asked for attribute %s" % name)
 		attr = object.__getattribute__(self, name)
 		if isinstance(attr, ForeignRelation):
+			log.debug(None, "asked for attribute %s" % name)
 			fil = {'id' : equals(object.__getattribute__(self,'id'))}
 			return RelationSet(attr,self.__model,self.__table,**fil)
 		return attr
-				
+	
+	def __deepcopy__(self, memo):
+		# log.debug(None, "Deepcopying %s" % self.__class__.__name__)
+		return self.__class__(self.__model, self.__table, **dict([(f,self.__dict__[f]) for f in self.__class__.__dict__['__fields']]))
+	
+	def __getstate__(self):
+		return (self.__model, self.__table) + tuple([(f,self.__dict__[f]) for f in self.__class__.__dict__['__fields']])
+		
+	def __setstate__(self,state):
+		self.__model, self.__table = state[:2]
+		self.__dict__.update(dict(state[2:]))
 		
 	def save(self):
 		if hasattr(self,"id"):

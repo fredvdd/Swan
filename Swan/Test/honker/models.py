@@ -18,7 +18,7 @@ class Status(Model):
 	timestamp = TimeField()
 	
 	def __repr__(self):
-		return "[%s] At %s, %s" % (self.user_id, self.timestamp, self.status) 
+		return "At %s, %s" % (self.timestamp, self.status) 
 
 class Follow(Model):
 	user_id = ForeignKey('User', "follows")

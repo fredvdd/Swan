@@ -1,4 +1,5 @@
 from Actors.keywords import *
+from Swan.static import log
 
 class Query(object):
 	
@@ -22,7 +23,7 @@ class Query(object):
 		
 	def _evaluate(self):
 		query = self._build_query_string(self.table)
-		# print "Evaluating %s" % query
+		# log.debug(None, "Evaluating %s" % query)
 		results = self.model.execute_select(query)
 		return results
 		
@@ -47,6 +48,15 @@ class Query(object):
 	def __getitem__(self,key):
 		self._check_cache()
 		return self.cache[key]
+		
+	def __deepcopy__(self,memo):
+		return Query(self.model.__deepcopy__(memo), self.table, **self.filters)
+	
+	def __getstate__(self):
+		return (self.model, self.table, self.filters, self.cache, self.cached)
+	
+	def __setstate__(self, state):
+		self.model, self.table, self.filters, self.cache, self.cached = state
 		
 class SingleQuery(Query):
 	
@@ -81,6 +91,7 @@ class SingleQuery(Query):
 	def __getattribute__(self, name):
 		it = object.__getattribute__(self,'instance_type')
 		if hasattr(it,name) or it.__dict__['__fields'].has_key(name):
+			log.debug(None, "single query asked for attribute %s" % name)
 			if it.__dict__.has_key(name) and isinstance(it.__dict__[name], ForeignRelation):
 				return RelationSet(it.__dict__[name],object.__getattribute__(self, 'model'), object.__getattribute__(self,'table'), **object.__getattribute__(self, 'filters'))
 			if not object.__getattribute__(self, 'cached'):
@@ -121,6 +132,7 @@ class RelationSet(Query):
 		return Query.__repr__(self)
 		
 	def __iter__(self):
+		log.debug(None, "Getting relation set iter")
 		return Query.__iter__(self)
 	
 	def __getitem__(self, key):
@@ -140,6 +152,15 @@ class ForeignRelation(object):
 		
 	def __str__(self):
 		return "%s:%s joins to %s:id" % (self.name, self.col, self.join_name)
+		
+	def __deepcopy__(self, memo):
+		return ForeignRelation(self.name, self.table, self.col, self.join_name, self.join_table)
+	
+	def __getstate__(self):
+		return (self.name, self.table, self.col, self.join_name, self.join_table)
+	
+	def __setstate__(self, state):
+		(self.name, self.table, self.col, self.join_name, self.join_table) = state
 
 
 def equals(value):

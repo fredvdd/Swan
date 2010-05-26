@@ -54,10 +54,11 @@ class RequestHandler(LocalActor, BaseHTTPRequestHandler):
 		if self.raw_requestline:
 			log.debug(self, "%s" % self.raw_requestline.strip())
 		sock.settimeout(None) #disable timeouts
-		if not self.raw_requestline or not self.parse_request():
+		if not self.raw_requestline or not self.parse_request() or self.raw_requestline == 'GET /favicon.ico HTTP/1.1':
 			log.debug(self, "Closing connection to %s:%d" % sock.getpeername())
 			wfile.flush()
 			sock.close()
+			log.debug(self, "\n****************\n****************\n*****************")
 			return
 		#got command, path, and request_version and headers
 		#log.debug(self,"Command: %s,\n Path: %s,\n Headers: %s\n" % (self.command, self.path, self.headers))

@@ -21,7 +21,7 @@ class Handler(StaticActor):
 			
 	
 	def no_method(self, request, response):
-		response.with_error(405, "The method %s is not supported on this resource" % request.method).send()
+		response.send_error(405, "The method %s is not supported on this resource" % request.method).send()
 	
 	def options(self, specifier, request, response):
 		print "OPTIONS for " + request.path
@@ -35,7 +35,7 @@ class Handler(StaticActor):
 		content = "<methods>" + content + "</methods>"
 		log.debug(self, "OPTIONS for %s are %s" % (request.path, content))
 		
-		response.with_status(200).with_content_type("text/xml").and_content("%s" % content).send()
+		response.with_status(200).with_content_type("text/xml").with_content("%s" % content).send()
 	
 	def __repr__(self):
 		return "%s Handler" % (self.__class__.__name__)
@@ -45,7 +45,7 @@ class DefaultHandler(Handler):
 	def do404(self, request, response):
 		path = request.path
 		log.debug(self, "Resource for %s not found" % path)
-		response.with_error(404, "Resource at %s could not be found" % path).send()
+		response.send_error(404, "Resource at %s could not be found" % path).send()
 	
 	head = get = put = post = delete = do404
 
@@ -55,8 +55,7 @@ class FileHandler(Handler):
 		self.root = root
 		self.workers = workers
 
-	def get(self, request, response):
-		path = request.params['path']
+	def get(self, request, response, path):
 		filepath = self.root+path
 		
 		filename = filepath.split('/')[-1]
@@ -74,14 +73,14 @@ class FileHandler(Handler):
 		path = request.params['path']
 		if content:
 			log.debug(self, "responding with content of %s for %s" % (path, request.socket))
-			response.with_status(200).and_content_type(content_type).and_content("%s" % content).send()
+			response.with_status(200).with_content_type(content_type).with_content("%s" % content).send()
 			log.debug(self, "finished handling %s for %s" % (path, request.socket))
 		else:
 			log.error(self, "couldn't find %s for %s" % (path, request.socket))
 			response.send_error(404, "Resource at %s could not be found" % path)
 			
-	def head(self, request):
-		pass
+	# def head(self, request):
+	# 	pass
 	
 class DatabaseHandler(Handler):
 	
