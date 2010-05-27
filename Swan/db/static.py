@@ -1,6 +1,6 @@
 from Swan.db.model import Model, ModelInstance
-from Swan.db.query import ForeignRelation
 from Swan.db.fields import *
+from Swan.db.relation import ForeignRelation
 from inspect import isclass
 import types
 import Swan
@@ -10,7 +10,7 @@ def extract_models(modelpath):
 	module = __import__(modelpath, globals(), locals(), [''])
 	models = {}
 	for x in dir(module):
-		 if isclass(module.__dict__[x]) and module.__dict__[x].__bases__[0].__name__ == "Model":
+		 if isclass(module.__dict__[x]) and issubclass(module.__dict__[x], Model):
 			models[x] = module.__dict__[x]													
 	return models
 

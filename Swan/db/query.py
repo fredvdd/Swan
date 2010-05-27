@@ -1,4 +1,5 @@
 from Actors.keywords import *
+from Swan.db.constraints import Constraint
 from Swan.static import log
 
 class Query(object):
@@ -58,59 +59,6 @@ class Query(object):
 	def __setstate__(self, state):
 		self.model, self.table, self.filters, self.cache, self.cached = state
 		
-class SingleQuery(Query):
-	
-	def __init__(self, model, table, instance_type, **filters):
-		# print "Single Query: %s, %s, %s, %s" % (model, table, instance_type, filters)
-		self.instance_type = instance_type
-		Query.__init__(self, model, table, **filters)
-		
-	def evaluate(self):
-		return Query._evaluate(self)[0]
-		
-	# def __getattr__(self, name):
-	# 	print "Get attr %s, %s" % (name, dir(self.instance_type))
-	# 	if hasattr(self.instance_type, name) and isinstance(self.instance_type.__dict__[name], ForeignRelation): 
-	# 		return RelationSet(self.instance_type.__dict__[name],self.model, self.table, **self.filters)
-	# 	if hasattr(self.instance_type, name) or self.instance_type.__dict__['__fields'].has_key(name):
-	# 		print "asdfsdf"
-	# 		if not object.__getattribute__(self, 'cached'):
-	# 			self.cache = self.evaluate()
-	# 		v = getattr(self.cache, name)
-	# 		return v
-	# 	# try:
-	# 	return object.__getattribute__(self, name)
-		# except AttributeError:
-		# 	print "SingleQuery has no attribute %s" % name
-		# 	if not object.__getattribute__(self, 'cached'):
-		# 		self.cache = self.evaluate()
-		# 	v = getattr(self.cache, name)
-		# 	return v
-		#return object.__getattribute__(self, name)
-	
-	def __getattribute__(self, name):
-		it = object.__getattribute__(self,'instance_type')
-		if hasattr(it,name) or it.__dict__['__fields'].has_key(name):
-			log.debug(None, "single query asked for attribute %s" % name)
-			if it.__dict__.has_key(name) and isinstance(it.__dict__[name], ForeignRelation):
-				return RelationSet(it.__dict__[name],object.__getattribute__(self, 'model'), object.__getattribute__(self,'table'), **object.__getattribute__(self, 'filters'))
-			if not object.__getattribute__(self, 'cached'):
-				object.__setattr__(self, 'cache', object.__getattribute__(self, 'evaluate')())
-				object.__setattr__(self, 'cached', True)
-			return object.__getattribute__(self.cache,name)
-		return object.__getattribute__(self,name)
-		
-	def __deepcopy__(self, memo):
-		return SingleQuery(self.model.__deepcopy__(memo), self.table, self.instance_type, **self.filters)
-	
-	def __getstate__(self):
-		return (self.model, self.table, self.filters, self.instance_type)
-	
-	def __setstate__(self, state):
-		self.model, self.table, self.filters, self.instance_type = state
-		self.cache = []
-		self.cached = False
-		
 class RelationSet(Query):
 	
 	def __init__(self, relation, join_model, join_table, **filters):
@@ -132,7 +80,7 @@ class RelationSet(Query):
 		return Query.__repr__(self)
 		
 	def __iter__(self):
-		log.debug(None, "Getting relation set iter")
+		# log.debug(None, "Getting relation set iter")
 		return Query.__iter__(self)
 	
 	def __getitem__(self, key):
@@ -140,34 +88,14 @@ class RelationSet(Query):
 		return Query.__getitem__(self, key)
 	
 	def add(self, **props):
+		# print "Adding %s" % props
 		if not self.join_instance:
 			self.join_instance = self.join_model.execute_select(Query._build_query_string(self, self.join_table))[0];
 		props.update({self.join_col:self.join_instance.id})
+		# print "Props now %s" % props
 		return self.relation.create(**props)
-
-class ForeignRelation(object):
 	
-	def __init__(self, *args):
-		self.name, self.table, self.col, self.join_name, self.join_table = args
-		
-	def __str__(self):
-		return "%s:%s joins to %s:id" % (self.name, self.col, self.join_name)
-		
-	def __deepcopy__(self, memo):
-		return ForeignRelation(self.name, self.table, self.col, self.join_name, self.join_table)
-	
-	def __getstate__(self):
-		return (self.name, self.table, self.col, self.join_name, self.join_table)
-	
-	def __setstate__(self, state):
-		(self.name, self.table, self.col, self.join_name, self.join_table) = state
-
-
-def equals(value):
-	return "= '%s'" % value
-	
-def less_than(value):
-	return "< %s" % value
-
-def greater_than(value):
-	return "> %s" % value
+	def delete(self, **props):
+		params = map(lambda (k,v): "%s %s" % (k, v if isinstance(v,Contstraint) else ("=%s"%v)), props.iteritems())
+		print "Delete params %s" % params
+		# self.relation.execute_insert("")

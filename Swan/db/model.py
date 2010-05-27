@@ -1,6 +1,7 @@
 from Actors.keywords import *
 from Swan.db.fields import IntegerField, ForeignKey
-from Swan.db.query import Query, SingleQuery, ForeignRelation
+from Swan.db.query import Query, RelationSet
+from Swan.db.relation import ForeignRelation
 import types
 from Swan.static import log
 
@@ -45,11 +46,44 @@ class Model(StaticActor):
 	
 	@classmethod
 	def get(cls, **kwds):
-		return SingleQuery(cls.pool.one(), cls.__name__, cls.instance_type, **kwds)
+		return PotentialModelInstance(cls.pool.one(), cls.__name__, cls.instance_type, **kwds)
 		
 	@classmethod
 	def create(cls, **kwds):
+		# print "Creating %s with %s" % (cls.instance_type.__name__, kwds)
 		return cls.instance_type(cls.pool.one(), cls.__name__, **kwds)
+		
+class PotentialModelInstance(Query):
+
+	def __init__(self, model, table, instance_type, **filters):
+		# print "Single Query: %s, %s, %s, %s" % (model, table, instance_type, filters)
+		self.instance_type = instance_type
+		Query.__init__(self, model, table, **filters)
+
+	def evaluate(self):
+		return Query._evaluate(self)[0]
+
+	def __getattribute__(self, name):
+		it = object.__getattribute__(self,'instance_type')
+		if hasattr(it,name) or it.__dict__['__fields'].has_key(name):
+			if it.__dict__.has_key(name) and isinstance(it.__dict__[name], ForeignRelation):
+				return RelationSet(it.__dict__[name],object.__getattribute__(self, 'model'), object.__getattribute__(self,'table'), **object.__getattribute__(self, 'filters'))
+			if not object.__getattribute__(self, 'cached'):
+				object.__setattr__(self, 'cache', object.__getattribute__(self, 'evaluate')())
+				object.__setattr__(self, 'cached', True)
+			return object.__getattribute__(self.cache,name)
+		return object.__getattribute__(self,name)
+
+	def __deepcopy__(self, memo):
+		return SingleQuery(self.model.__deepcopy__(memo), self.table, self.instance_type, **self.filters)
+
+	def __getstate__(self):
+		return (self.model, self.table, self.filters, self.instance_type)
+
+	def __setstate__(self, state):
+		self.model, self.table, self.filters, self.instance_type = state
+		self.cache = []
+		self.cached = False
 		
 class ModelInstance(object):
 	
@@ -62,15 +96,15 @@ class ModelInstance(object):
 		fields = self.__class__.__dict__['__fields']
 		for p in props:
 			self.__dict__[p] = props[p]
-			if fields.has_key(p) and isinstance(fields[p], ForeignRelation) and not isinstance(props[p], SingleQuery):
+			if fields.has_key(p) and isinstance(fields[p], ForeignRelation) and not isinstance(props[p], PotentialModelInstance):
 				rel = fields[p]
 				fil = dict({'id':"='%s'"%props[p]})
 				log.debug(None,"Creating query for %s" % p)
-				asdf = SingleQuery(rel.join_table.pool.one(), rel.join_name, rel.join_table.instance_type, **fil)
+				asdf = PotentialModelInstance(rel.join_table.pool.one(), rel.join_name, rel.join_table.instance_type, **fil)
 				self.__dict__[p] = asdf
 				
 	def __getattribute__(self, name):
-		# log.debug(None, "asked for attribute %s" % name)
+		# log.debug(object.__getattribute__(self, '__class__'), "asked for attribute %s" % name)
 		attr = object.__getattribute__(self, name)
 		if isinstance(attr, ForeignRelation):
 			log.debug(None, "asked for attribute %s" % name)
@@ -96,17 +130,18 @@ class ModelInstance(object):
 			self._insert()
 		return self
 	
-	def _insert(self):	
+	def _insert(self):
 		cols = list()
 		vals = list()
 		for f in self.__class__.__dict__['__fields']:
 			if self.__dict__.has_key(f):
 				cols.append(f)
-				vals.append(self.__dict__[f])
+				vals.append((self.__dict__[f] if not isinstance(self.__dict__[f], PotentialModelInstance) else self.__dict__[f].id))
 		m = lambda x: "'%s'" % x;
 		r = lambda a, v: "%s, %s" % (a,v);
 		cols_vals = (reduce(r, map(m, cols)), reduce(r, map(m, vals)))
 		query = "INSERT INTO " + self.__table + ("(%s) VALUES (%s);" % cols_vals)
+		# print "Executing " + query
 		self.id = self.__model.execute_insert(query)
 	
 	def _update(self):
@@ -115,5 +150,5 @@ class ModelInstance(object):
 			if self.__dict__.has_key(f) and not f == 'id':
 				query += "%s='%s'," % (f, self.__dict__[f])
 		query = query[:-1] + " WHERE id = '%s'" % self.id
-		print query
+		# print query
 		print self.__model.execute_insert(query)
