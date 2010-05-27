@@ -30,26 +30,36 @@ class SwanJSONEncoder(SwanEncoder, JSONEncoder):
 		JSONEncoder.__init__(self, *args, **kwds)
 		
 	def get_encoding(self, content):
-		# print "Encoder encoding %s" % content
-		dump = dumps(content, cls=SwanJSONEncoder)
-		# print dump
-		return dump
+		return self.encode(content)
 	
 	def encodeModel(self, model):
-		# log.debug(self, "Evaluating model")
 		fields = getattr(model.__class__, '__fields')
-		objdict = dict([(f,getattr(model,f)) for (f,t) in fields.iteritems() if not isinstance(t, ForeignRelation)])
-		return JSONEncoder.encode(self, objdict)
-		
-	def encodeSet(self,modelset):
-		# log.debug(self,"Evaluating modelset %s"%type(modelset))
-		return "[" + reduce(lambda s,j:"%s,%s"%(s,j), map(self.default, modelset)) + "]"
+		return dict([(f,getattr(model,f)) for (f,t) in fields.iteritems() if not isinstance(t, ForeignRelation)])
 
 	def default(self, obj):
 		if isinstance(obj, ModelInstance):
 			return self.encodeModel(obj)
 		if isinstance(obj, RelationSet) or isinstance(obj, Query):
-			return self.encodeSet(obj)
+			return list(obj.__iter__())
 		return JSONEncoder.default(self,obj)
+		
+class SwanDecoder(object):
+	
+	def __init__(self):
+		pass
+		
+	def get_decoding(self,encoded):
+		pass
+		
+class PassThroughDecoder(SwanDecoder):
+	
+	def get_decoding(self, encoded):
+		return encoded
+
+class SwanJSONDecoder(object):
+	
+	def get_decoding(self,encoded):
+		return dict([(str(k),v) for (k,v) in loads(encoded).iteritems()])
 
 encoders = dict({'application/json':SwanJSONEncoder})
+decoders = dict({'application/json':SwanJSONDecoder})
