@@ -1,4 +1,4 @@
-import threading
+import threading, sys, traceback
 from Util.Network import socketutil, rpc
 from Manager.managerlog import log
 from Messaging.structures import MessageQueue, ResultMap
@@ -69,12 +69,13 @@ class StageSocket(threading.Thread):
 				if self.exit:
 					break
 				mid, target, method, args, kwds = request
-				#print "Call %s on %s with %s and %s" % (method, target, args, kwds)
+				log.debug(self,"Call %s on %s with %s and %s" % (method, target, args, kwds))
 				meth = getattr(target, method)
-				result = meth(*args, **kwds)	
+				result = meth(*args, **kwds)
+				# print "Got result %s" % result	
 				#special cases
 				if method == 'makefile':
-					#print "Called makefile %s, %s, %s" % (self.manager_loc, self.id, args[0][0])
+					log.debug(self, "Called makefile %s, %s, %s" % (self.manager_loc, self.id, args[0][0]))
 					result = socketutil.SocketFileReference(self.manager_loc, self.id, args[0][0])
 				elif method == 'accept':
 					socket_id = "%s:%d" % result[1]
@@ -87,6 +88,8 @@ class StageSocket(threading.Thread):
 				self.results.add(SocketResult(mid,result))
 			except Exception as e:
 				log.debug(self, "Socket exception: %s" % e)
+				# t, v, tr = sys.exc_info()
+				log.debug(self, "%s" % traceback.format_exc())
 				if self.exit:
 					break
 				else:
@@ -122,9 +125,9 @@ class SocketRequest(object):
 		self.method = method
 		
 	def __call__(self, *args, **kwds):
-		#print "Calling %s with %s and %s" % (self.method, args, kwds)
+		# print "Calling %s with %s and %s" % (self.method, args, kwds)
 		self.socket.messages.add((self.mid, self.target, self.method, args, kwds))
-		#print "Request made"
+		# print "Request made"
 		return self.socket.results.wait_for(self.mid).result
 		
 class SocketResult(object):

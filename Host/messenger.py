@@ -2,7 +2,7 @@ from Util.Network import rpc
 from Util.exceptions import ActorNotFoundException
 import copy
 from static import log, local_theatre
-import time
+import time, traceback
 import Util.ids as ids
 
 MAX_RETRIES = 10
@@ -39,6 +39,7 @@ class Messenger(object):
        except Exception:
          print 'Senderror:'
          log.warn(self, 'sending message to %s failed, retrying, as host (%s) was unreachable (message was: %s)' % (actor_id, actor_location, message))
+         log.warn(self, traceback.format_exc())
          new_actor_id = local_theatre().get_migration(actor_id)
          if new_actor_id:
            actor_id = new_actor_id
