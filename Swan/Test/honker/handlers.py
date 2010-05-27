@@ -1,10 +1,11 @@
 from Swan.Test.honker.models import * 
 from Swan.handlers import Handler, FileHandler
 from Swan.static import log
+from datetime import datetime
 
 class RootHandler(FileHandler):
 	root = "/files/"
-	binding = "/`path`"
+	binding = "/honker/`path`"
 
 class StatusHandler(Handler):
 	bindings = {
@@ -18,10 +19,17 @@ class StatusHandler(Handler):
 		response.send(200, statuses, 'application/json')
 	
 	#adds a new status
-	def post(self, request, response, user, status):
-		pass
+	def post(self, request, response, name):
+		body = request.get_body()
+		if not body:
+			response.send_error(412, "Need a status").send()
+		else:
+			statuses = User.get(name=equals(name)).statuses
+			statuses.add(status=body['status'],timestamp=datetime.now()).save()
+			response.send(204)
 	
-	def delete(self, request, response, user, status_id):
+	def delete(self, request, response, user):
+		body = request.get_body()
 		pass
 	
 # class FollowerHandler(Handler):

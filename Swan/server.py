@@ -58,10 +58,11 @@ class RequestHandler(LocalActor, BaseHTTPRequestHandler):
 			log.debug(self, "Closing connection to %s:%d" % sock.getpeername())
 			wfile.flush()
 			sock.close()
-			log.debug(self, "\n****************\n****************\n****************")
+			log.debug(self, "\n****************\n\n****************")
 			return
 		#got command, path, and request_version and headers
-		#log.debug(self,"Command: %s,\n Path: %s,\n Headers: %s\n" % (self.command, self.path, self.headers))
+		if self.command == 'POST':
+			log.debug(self,"Command: %s,\n Path: %s,\n Headers: %s\n" % (self.command, self.path, self.headers))
 		command, path, headers = (self.command, self.path, self.headers)
 		(responder_pool, specifier, params) = one(self.registries).lookup(path)
 		#log.debug(self,"Responders: %s,\n Specifier: %s,\n Params: %s\n" % (responder_pool, specifier, params))

@@ -9,9 +9,6 @@ from Swan.db import init_db_models
 import sys, os.path
 from inspect import isclass
 
-
-	
-	
 class Launcher(LocalActor):
 	
 	def birth(self, path, models):
@@ -57,7 +54,8 @@ class Launcher(LocalActor):
 					handler_pools[ek] = get_pool(ev)
 					for (s,p) in bindings.iteritems():
 						all(registries).register(p,handler_pools[ek],(s if not s == 'default' else None))
-			
+		# Test().start()
+		
 		print "Starting server..."
 		# #launch server with registry pool
 		Server("localhost", 8080, registries)

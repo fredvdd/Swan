@@ -1,0 +1,114 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+
+	<title>Ajax Test Page</title>
+	<link rel="stylesheet" href="styles.css" type="text/css" media="screen" title="no title" charset="utf-8" />
+<script type="text/javascript"> 
+
+// function async_request(method, path, onsuccess, onfailure, body)
+// {
+// xmlhttp=new XMLHttpRequest();
+// xmlhttp.onreadystatechange=function(){
+// 	if(xmlhttp.readyState==4){
+// 		if(xmlhttp.status>=200 && xmlhttp.status<300){
+// 			onsuccess(xmlhttp.responseText, xmlhttp.responseXML)
+// 		}else if(xmlhttp.status>=400){
+// 			onfailure(xmlhttp.responseText, xmlhttp.responseXML)
+// 		}
+// 	}
+// }
+// xmlhttp.open(method,path,true);
+// xmlhttp.send(null);
+// }
+
+function swanjsRequest(method, path, onsuccess, onfailure){
+	this.method = method;
+	this.path = path;
+	request = new XMLHttpRequest();
+	request.onreadystatechange=function(){
+		if(request.readyState==4){
+			if(request.status>=200 && request.status<300){
+				onsuccess(request.responseText, request.responseXML)
+			}else if(request.status>=400){
+				onfailure(request.responseText, request.responseXML)
+			}
+		}
+	}
+	this.request = request
+	this.request.open(this.method, this.path, true)
+}
+
+swanjsRequest.prototype.setHeader = function(key,value){
+	this.request.setRequestHeader(key, value)
+	return this
+}
+swanjsRequest.prototype.send = function(body){
+	this.request.send(body)
+}
+ 
+function status_load(text, xml)
+{
+	span = document.getElementById('incoming');
+	console.log(text)
+	statuses = eval("(" + text + ")");
+	console.log(statuses.length)
+	val = "";
+	for(x in statuses){
+		stat = statuses[x]
+		val += "At " + stat.timestamp + ": " + stat.status + ".<br />"
+	}
+	table.innerHTML = val; //xmlhttp.responseText;
+}
+ 
+function status_post(e) {
+	user = 'Pete'
+	statustext = document.getElementById('statusfields').value
+	console.log(user, statustext)
+	new swanjsRequest('post', "/" + user + "/statuses/", function(text){
+			console.log(text)
+	}).setHeader("Content-type", "application/json").send(JSON.stringify({'status':statustext,'user':user}));
+	// xmlhttp=new XMLHttpRequest();
+	// 
+	// xmlhttp.onreadystatechange=function(){
+	// 		console.log(xmlhttp)
+	// }
+	// url = "/" + user + "/statuses/"
+	// console.log(url)
+	// xmlhttp.open("POST", url, true);
+	// xmlhttp.setRequestHeader("Content-type", "application/json");
+	// console.log("Sending")
+	// xmlhttp.send(JSON.stringify({'status':statustext,'user':user}));
+	// console.log(user, statustext)
+	return false;
+}
+// 
+// function post_handler(){
+// 	
+// }
+// 
+function deletestatus(){
+	swanjsRequest('delete', )
+}
+//  
+</script> 
+</head> 
+ 
+<body> 
+<span id="incoming"></span><br />
+<table id="table"></table><br />
+
+<button onclick="new swanjsRequest('get', '/Pete/statuses/', status_load).send()">Query</button>
+
+<form action="" method="post" accept-charset="utf-8" onsubmit="return(status_post())">
+	<label>Status:<input type="text" name="status" id="statusfields" /></label>
+	<p><input type="submit" value="Continue &rarr;"></p>
+</form>
+
+
+</body> 
+ 
+</html>
