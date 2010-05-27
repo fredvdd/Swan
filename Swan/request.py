@@ -2,7 +2,7 @@ from Actors.keywords import *
 from BaseHTTPServer import BaseHTTPRequestHandler
 from time import time, gmtime
 from json import JSONEncoder, dumps, loads
-from Swan.encoding import encoders, PassThroughEncoder
+from Swan.coding import encoders, decoders, PassThroughEncoder, PassThroughDecoder
 
 class Request(object):
 	
@@ -15,6 +15,7 @@ class Request(object):
 		self.path = path
 		self.headers = headers
 		self.params = params
+		self.body = None
 		
 	def __str__(self):
 		return "request for %s" % self.path
@@ -29,9 +30,15 @@ class Request(object):
 			self.socket.close()
 			
 	def get_body(self):
+		if self.body:
+			return self.body
 		length = self.headers['Content-length']
-		content = self.rfile.read(length)
-		return content
+		self.body = self.decode(self.headers['Content-type'], self.rfile.read(int(length)))
+		return self.body
+		
+	
+	def decode(self, content_type, content):
+		return decoders.get(content_type, PassThroughDecoder)().get_decoding(content)
 
 class Response(object):
 	
@@ -39,6 +46,9 @@ class Response(object):
 		self.partner = partner
 		self.wfile = wfile
 		self.headers = dict()
+		self.code=None
+		self.name=None
+		self.content=None
 
 	def send(self, status_code=None, content=None, content_type=None):
 		if status_code:
@@ -49,7 +59,7 @@ class Response(object):
 		self.wfile.write("HTTP/1.1 %s %s\n" % (self.code, self.name))
 		for k,v in self.headers.iteritems():
 			self.wfile.write("%s:%s\n" % (k,v))
-		self.wfile.write("\r\n%s" % self.content)
+		self.wfile.write(("\r\n%s" % self.content) if self.content else "")
 		self.wfile.flush()
 		self.partner.try_repeat()
 		
@@ -113,8 +123,7 @@ class Response(object):
 		return ErrorResponse(self.partner, self.wfile, error_code, message)
 
 	def encode(self, content_type, content):
-		thejson = encoders.get(content_type, PassThroughEncoder)().get_encoding(content)
-		return thejson
+		return encoders.get(content_type, PassThroughEncoder)().get_encoding(content)
 
 class ErrorResponse(Response):
 	

@@ -17,24 +17,23 @@ class Handler(StaticActor):
 		handle_name = "%s_%s" % (method.lower(), specifier) if specifier else method.lower()
 		handle_method = getattr(self, handle_name, self.no_method)
 		# log.debug(self, "Handling request with %s" % handle_method)
-		handle_method(request, response, **request.params)
+		params = dict([(k,v) for (k,v) in request.params.iteritems() if not v == None])
+		if method in ['put', 'delete', 'post']:
+			params['body'] = request.get_body()
+		handle_method(request, response, **params)
 			
 	
-	def no_method(self, request, response):
+	def no_method(self, request, response, **superfluous):
 		response.send_error(405, "The method %s is not supported on this resource" % request.method).send()
 	
+	#inspects handler for presence of methods and compiles response
 	def options(self, specifier, request, response):
-		print "OPTIONS for " + request.path
+		log.debug(self,"OPTIONS for " + request.path)
 		pattern = "%s" if not specifier else "%s_" + specifier
 		methods = ['get', 'put', 'delete', 'post', 'head']
-		options = []
-		for method in methods:
-			if hasattr(self, pattern % method):
-				options.append(method)
-		content = reduce(lambda a,b: a+b, map(lambda x: "<method>%s</method>" % x, options))
-		content = "<methods>" + content + "</methods>"
+		options = [method for method in methods if hasattr(self, pattern % methods)]#[]
+		content =  "<methods>" + reduce(lambda a,b: a+b, map(lambda x: "<method>%s</method>" % x, options)) + "</methods>"
 		log.debug(self, "OPTIONS for %s are %s" % (request.path, content))
-		
 		response.with_status(200).with_content_type("text/xml").with_content("%s" % content).send()
 	
 	def __repr__(self):
@@ -77,7 +76,7 @@ class FileHandler(Handler):
 			log.debug(self, "finished handling %s for %s" % (path, request.socket))
 		else:
 			log.error(self, "couldn't find %s for %s" % (path, request.socket))
-			response.send_error(404, "Resource at %s could not be found" % path)
+			response.send_error(404, "Resource at %s could not be found" % path).send()
 			
 	# def head(self, request):
 	# 	pass
