@@ -1,12 +1,14 @@
 from Actors.keywords import *
-from Swan.db.constraints import Constraint
-from Swan.static import log
+from constraints import Constraint
+from relation import ForeignRelation
+from Swan.db import log
 
 class Query(object):
 	
-	def __init__(self, model, table, **filters):
+	def __init__(self, model, table, instance_type, **filters):
 		self.model = model
 		self.table = table
+		self.instance_type = instance_type
 		self.filters = filters
 		self.cache = []
 		self.cached= False
@@ -17,15 +19,16 @@ class Query(object):
 		return Query(self.model, self.table, **temp_filters)
 		
 	def _build_query_string(self, table):
+		cols = [f for f in getattr(self.instance_type, '__fields')]
 		query = "SELECT * FROM " + table
 		if len(self.filters) < 1:
 			return query
-		return query + " WHERE " + reduce(lambda s, (p,v): "%s %s AND %s" % (p,v,s), self.filters.iteritems(), "")[:-4]
+		return (cols, query + " WHERE " + reduce(lambda s, (p,v): "%s %s AND %s" % (p,v,s), self.filters.iteritems(), "")[:-4])
 		
 	def _evaluate(self):
-		query = self._build_query_string(self.table)
-		# log.debug(None, "Evaluating %s" % query)
-		results = self.model.execute_select(query)
+		desc, query = self._build_query_string(self.table)
+		log.debug(None, "Evaluating %s" % query)
+		results = self.model.execute_select(desc, query)
 		return results
 		
 	def _check_cache(self):
@@ -65,16 +68,37 @@ class RelationSet(Query):
 		self.relation, self.join_col = (relation.table, relation.col)
 		self.join_model = join_model
 		self.join_table = join_table
-		Query.__init__(self, self.relation.pool.one(), relation.name, **filters)
+		Query.__init__(self, self.relation.pool.one(), relation.name, self.relation.instance_type, **filters)
 		self.join_instance = None
 		
 	def _build_query_string(self, table):
 		t, j, c = (self.table, self.join_table, self.join_col)
-		fields = self.relation.instance_type.__dict__['__fields']
-		selection = reduce(lambda s, k: "%s, %s" % (s,k), [f for f in fields if not f =='id'], t + ".id")
-		query = "SELECT %s FROM %s, %s WHERE %s.%s = %s.id" % (selection, t, j, t, c, j)
+		fields = getattr(self.relation.instance_type, '__fields')
+		selection = self._compress(map(self._process_field, fields.iteritems()), [])
+		# print selection
+		selstr = reduce(lambda a, s: "%s, %s" %(a,s), selection)
+		query = "SELECT %s FROM %s, %s WHERE %s.%s = %s.id" % (selstr, t, j, t, c, j)
 		query += " AND " + reduce(lambda s, (p,v): "%s.%s %s AND %s" % (self.join_table,p,v,s), self.filters.iteritems(), "")[:-4]
-		return query
+		# print query
+		return (selection, query)
+		
+	def _compress(self, sellist, acc):
+		if len(sellist) == 0:
+			return acc
+		head, tail = (sellist[0], sellist[1:])
+		if hasattr(head, '__iter__'):
+			return self._compress(head, acc) + self._compress(tail, acc)
+		else:
+			return [head] + self._compress(tail, acc)
+		
+	
+	def _process_field(self, field):
+		fname, ftype = field
+		if fname == 'id':
+			return self.table + ".id"
+		if fname == self.join_col and isinstance(ftype, ForeignRelation):
+			return map(lambda x: "%s.%s" %(ftype.join_name,x), getattr(ftype.join_table.instance_type, '__fields'))
+		return fname
 		
 	def __repr__(self):
 		return Query.__repr__(self)
@@ -96,6 +120,10 @@ class RelationSet(Query):
 		return self.relation.create(**props)
 	
 	def delete(self, **props):
-		params = map(lambda (k,v): "%s %s" % (k, v if isinstance(v,Contstraint) else ("=%s"%v)), props.iteritems())
-		print "Delete params %s" % params
+		params = map(lambda (k,v): "%s %s" % (k, v if isinstance(v,Constraint) else ("= %s"%v)), props.iteritems())
+		paramstr = reduce(lambda a,p:"%s, %s" % (a,p), params)
+		print "Delete params %s" % paramstr
+		query = "DELETE FROM %s WHERE %s" % (self.table, paramstr)
+		print query
+		print self.model.execute_insert(query)
 		# self.relation.execute_insert("")

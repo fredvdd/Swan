@@ -1,6 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-
+<!DOCTYPE HTML>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
@@ -8,22 +6,6 @@
 	<title>Ajax Test Page</title>
 	<link rel="stylesheet" href="styles.css" type="text/css" media="screen" title="no title" charset="utf-8" />
 <script type="text/javascript"> 
-
-// function async_request(method, path, onsuccess, onfailure, body)
-// {
-// xmlhttp=new XMLHttpRequest();
-// xmlhttp.onreadystatechange=function(){
-// 	if(xmlhttp.readyState==4){
-// 		if(xmlhttp.status>=200 && xmlhttp.status<300){
-// 			onsuccess(xmlhttp.responseText, xmlhttp.responseXML)
-// 		}else if(xmlhttp.status>=400){
-// 			onfailure(xmlhttp.responseText, xmlhttp.responseXML)
-// 		}
-// 	}
-// }
-// xmlhttp.open(method,path,true);
-// xmlhttp.send(null);
-// }
 
 function swanjsRequest(method, path, onsuccess, onfailure){
 	this.method = method;
@@ -48,6 +30,7 @@ swanjsRequest.prototype.setHeader = function(key,value){
 }
 swanjsRequest.prototype.send = function(body){
 	this.request.send(body)
+	return this9
 }
  
 function status_load(text, xml)
@@ -59,7 +42,7 @@ function status_load(text, xml)
 	val = "";
 	for(x in statuses){
 		stat = statuses[x]
-		val += "At " + stat.timestamp + ": " + stat.status + ".<br />"
+		val += '<span data-id="'+stat.id+'">At ' + stat.timestamp + ": " + stat.status + '. <span onclick="deletestatus(this.parentNode)">X</span></span><br />'
 	}
 	table.innerHTML = val; //xmlhttp.responseText;
 }
@@ -71,27 +54,16 @@ function status_post(e) {
 	new swanjsRequest('post', "/" + user + "/statuses/", function(text){
 			console.log(text)
 	}).setHeader("Content-type", "application/json").send(JSON.stringify({'status':statustext,'user':user}));
-	// xmlhttp=new XMLHttpRequest();
-	// 
-	// xmlhttp.onreadystatechange=function(){
-	// 		console.log(xmlhttp)
-	// }
-	// url = "/" + user + "/statuses/"
-	// console.log(url)
-	// xmlhttp.open("POST", url, true);
-	// xmlhttp.setRequestHeader("Content-type", "application/json");
-	// console.log("Sending")
-	// xmlhttp.send(JSON.stringify({'status':statustext,'user':user}));
-	// console.log(user, statustext)
 	return false;
 }
-// 
-// function post_handler(){
-// 	
-// }
-// 
-function deletestatus(){
-	swanjsRequest('delete', )
+
+function deletestatus(status){
+	console.log("Deleting " + status.attributes.getNamedItem('data-id').value + ", " + status)
+	user = 'Pete'
+	status_id = status.attributes.getNamedItem('data-id').value
+	new swanjsRequest('delete', "/" + user + "/statuses/" + status_id, function(text){
+		status.parentNode.removeChild(status)
+	}).send()
 }
 //  
 </script> 

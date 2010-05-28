@@ -10,10 +10,14 @@ class Test(StaticActor):
 	
 	def start(self):
 		u = User.get(name=equals('Fred'))
-		fs = u.followers
-		print type(fs)
-		for f in u.followers:
-			print "Hello"
+		statuses = u.statuses
+		for status in statuses:
+			print status.user_id.name
+		print u.follows
+		# fs = u.followers
+		# print type(fs)
+		# for f in u.followers:
+		# 	print "Hello"
 		# users = User.filter(id=greater_than(1))
 		# for user in users:
 		# 	print user.follows

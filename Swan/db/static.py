@@ -40,9 +40,10 @@ def init_db_models(modelpath):
 		fieldss[model] = fields
 	for model in models:
 		funcss[model].update(fkss[model])
-		funcss[model].update({'__fields':fieldss[model]})
+		# funcss[model].update({'__fields':fieldss[model]})
 		n = models[model].__name__ +"Instance"
 		t = type(n, (ModelInstance,), funcss[model])
+		setattr(t, '__fields', fieldss[model])
 		setattr(Swan.db.static, n, t) #This is a slightly ridiculous requirement, needed for pickling...
 		models[model].instance_type = t
 	return models

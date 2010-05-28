@@ -1,9 +1,9 @@
 from Actors.keywords import *
-from Swan.db.fields import IntegerField, ForeignKey
-from Swan.db.query import Query, RelationSet
-from Swan.db.relation import ForeignRelation
+from fields import IntegerField, ForeignKey
+from query import Query, RelationSet
+from relation import ForeignRelation
 import types
-from Swan.static import log
+from Swan.db import log
 
 class Model(StaticActor):
 	id = IntegerField()
@@ -23,12 +23,11 @@ class Model(StaticActor):
 		self.__class__.pool = pool
 		return pool
 		
-	def execute_select(self, query):
+	def execute_select(self, desc, query):
 		log.debug(self, "Executing SQL: " + query)
 		cursor = self.workers.one().get_cursor().execute(query)
 		rows = cursor.fetchall()
-		cols = cursor.description()
-		props = [dict(zip([col[0] for col in cols],row))for row in rows]
+		props = [dict(zip(desc,row))for row in rows]
 		return [self.model_instance(self, self.table, **ps) for ps in props]
 	
 	def execute_insert(self, query):
@@ -38,11 +37,11 @@ class Model(StaticActor):
 	
 	@classmethod
 	def all(cls):
-		return Query(cls.pool.one(), cls.__name__, **{})
+		return Query(cls.pool.one(), cls.__name__, cls.instance_type, **{})
 	
 	@classmethod
 	def filter(cls, **kwds):
-		return Query(cls.pool.one(), cls.__name__, **kwds)
+		return Query(cls.pool.one(), cls.__name__, cls.instance_type, **kwds)
 	
 	@classmethod
 	def get(cls, **kwds):
@@ -57,11 +56,10 @@ class PotentialModelInstance(Query):
 
 	def __init__(self, model, table, instance_type, **filters):
 		# print "Single Query: %s, %s, %s, %s" % (model, table, instance_type, filters)
-		self.instance_type = instance_type
-		Query.__init__(self, model, table, **filters)
+		Query.__init__(self, model, table, instance_type, **filters)
 
 	def evaluate(self):
-		return Query._evaluate(self)[0]
+		return self._evaluate()[0]
 
 	def __getattribute__(self, name):
 		it = object.__getattribute__(self,'instance_type')
@@ -86,26 +84,40 @@ class PotentialModelInstance(Query):
 		self.cached = False
 		
 class ModelInstance(object):
+	__fields = None
 	
 	def __init__(self, model, table, **props):
-		# log.debug(None, "Creating %s" % self.__class__.__name__)
+		log.debug(None, "Creating %s with props %s" % (self.__class__.__name__, props))
 		self.__model = model
 		self.__table = table
 		#self.__dict__.update(props)
 		# print "Class fields %s" % (self.__class__.__dict__['__fields'])
-		fields = self.__class__.__dict__['__fields']
-		for p in props:
-			self.__dict__[p] = props[p]
-			if fields.has_key(p) and isinstance(fields[p], ForeignRelation) and not isinstance(props[p], PotentialModelInstance):
-				rel = fields[p]
-				fil = dict({'id':"='%s'"%props[p]})
-				log.debug(None,"Creating query for %s" % p)
-				asdf = PotentialModelInstance(rel.join_table.pool.one(), rel.join_name, rel.join_table.instance_type, **fil)
-				self.__dict__[p] = asdf
-				
+		fields = getattr(self.__class__,'__fields')
+		for f in fields:
+			if isinstance(fields[f], ForeignRelation):
+				relation = fields[f]
+				rtable = relation.join_table
+				if not props.has_key(f):
+					rfields = getattr(rtable.instance_type, '__fields')
+					rprops = dict([(rf,props['User.'+rf]) for rf in rfields])
+					# print rprops
+					self.__dict__[f] = rtable.instance_type(rtable, relation.join_name, **rprops)
+				else:
+					rf = props[f]
+					if isinstance(rf, PotentialModelInstance) or isinstance(rf, ModelInstance):
+						self.__dict__[f] = props[f]
+					else:
+						self.__dict__[f] = rtable.get(**{'id':"=%s"%props[f]})
+			elif f == 'id':
+				self.__dict__[f] = props[f] if props.has_key(f) else (props[table+'.id'] if props.has_key(table+'.id') else None)
+			else:
+				self.__dict__[f] = props[f] if props.has_key(f) else None;
+
 	def __getattribute__(self, name):
 		# log.debug(object.__getattribute__(self, '__class__'), "asked for attribute %s" % name)
 		attr = object.__getattribute__(self, name)
+		if isinstance(attr, PotentialModelInstance):
+			log.debug(object.__getattribute__(self, '__class__').__name__, "asked for PotentialModelInstance attribute %s" % name)
 		if isinstance(attr, ForeignRelation):
 			log.debug(None, "asked for attribute %s" % name)
 			fil = {'id' : equals(object.__getattribute__(self,'id'))}
@@ -113,8 +125,10 @@ class ModelInstance(object):
 		return attr
 	
 	def __deepcopy__(self, memo):
-		# log.debug(None, "Deepcopying %s" % self.__class__.__name__)
-		return self.__class__(self.__model, self.__table, **dict([(f,self.__dict__[f]) for f in self.__class__.__dict__['__fields']]))
+		log.debug(None, "Deepcopying %s" % self.__class__.__name__)
+		props = dict([(f,self.__dict__[f]) for f in self.__class__.__dict__['__fields']])
+		log.debug(None, "Props are %s" % props)
+		return self.__class__(self.__model, self.__table, **props)
 	
 	def __getstate__(self):
 		return (self.__model, self.__table) + tuple([(f,self.__dict__[f]) for f in self.__class__.__dict__['__fields']])
