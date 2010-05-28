@@ -62,15 +62,21 @@ class PotentialModelInstance(Query):
 		return self._evaluate()[0]
 
 	def __getattribute__(self, name):
-		it = object.__getattribute__(self,'instance_type')
-		if hasattr(it,name) or it.__dict__['__fields'].has_key(name):
-			if it.__dict__.has_key(name) and isinstance(it.__dict__[name], ForeignRelation):
-				return RelationSet(it.__dict__[name],object.__getattribute__(self, 'model'), object.__getattribute__(self,'table'), **object.__getattribute__(self, 'filters'))
-			if not object.__getattribute__(self, 'cached'):
-				object.__setattr__(self, 'cache', object.__getattribute__(self, 'evaluate')())
-				object.__setattr__(self, 'cached', True)
-			return object.__getattribute__(self.cache,name)
-		return object.__getattribute__(self,name)
+		if name not in ['__repr__','__len__', '__iter__', '__getitem__']:
+			try:
+				return object.__getattribute__(self, name)
+			except AttributeError:
+				it = object.__getattribute__(self,'instance_type')
+				if hasattr(it,name) or it.__dict__['__fields'].has_key(name):
+					if it.__dict__.has_key(name) and isinstance(it.__dict__[name], ForeignRelation):
+						return RelationSet(it.__dict__[name],object.__getattribute__(self, 'model'), object.__getattribute__(self,'table'), **object.__getattribute__(self, 'filters'))
+				if not object.__getattribute__(self, 'cached'):
+					log.debug(None, "Getting cache for %s access" % name)
+					object.__getattribute__(self, '_check_cache')()
+					# object.__setattr__(self, 'cache', object.__getattribute__(self, 'evaluate')())
+					# object.__setattr__(self, 'cached', True)
+					return object.__getattribute__(self.cache,name)
+		# return object.__getattribute__(self,name)
 
 	def __deepcopy__(self, memo):
 		return SingleQuery(self.model.__deepcopy__(memo), self.table, self.instance_type, **self.filters)
@@ -87,7 +93,7 @@ class ModelInstance(object):
 	__fields = None
 	
 	def __init__(self, model, table, **props):
-		log.debug(None, "Creating %s with props %s" % (self.__class__.__name__, props))
+		# log.debug(None, "Creating %s with props %s" % (self.__class__.__name__, props))
 		self.__model = model
 		self.__table = table
 		#self.__dict__.update(props)
@@ -125,9 +131,9 @@ class ModelInstance(object):
 		return attr
 	
 	def __deepcopy__(self, memo):
-		log.debug(None, "Deepcopying %s" % self.__class__.__name__)
+		# log.debug(None, "Deepcopying %s" % self.__class__.__name__)
 		props = dict([(f,self.__dict__[f]) for f in self.__class__.__dict__['__fields']])
-		log.debug(None, "Props are %s" % props)
+		# log.debug(None, "Props are %s" % props)
 		return self.__class__(self.__model, self.__table, **props)
 	
 	def __getstate__(self):

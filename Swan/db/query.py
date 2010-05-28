@@ -27,7 +27,7 @@ class Query(object):
 		
 	def _evaluate(self):
 		desc, query = self._build_query_string(self.table)
-		log.debug(None, "Evaluating %s" % query)
+		# log.debug(None, "Evaluating %s" % query)
 		results = self.model.execute_select(desc, query)
 		return results
 		
