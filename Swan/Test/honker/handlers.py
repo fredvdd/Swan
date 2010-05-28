@@ -1,6 +1,5 @@
-from Swan.Test.honker.models import * 
 from Swan.handlers import Handler, FileHandler
-from Swan.static import log
+from models import * 
 from datetime import datetime
 
 class RootHandler(FileHandler):
@@ -13,14 +12,13 @@ class StatusHandler(Handler):
 	}
 	
 	#gets the count latest statuses for user
-	def get(self, request, response, name, count=None):
+	def get(self, name, count=None):
 		user = User.get(name=equals(name))
 		statuses = user.statuses[:int(count)] if count else user.statuses
 		response.send(200, statuses, 'application/json')
 	
 	#adds a new status
-	def post(self, request, response, name):
-		body = request.get_body()
+	def post(self, name, count=None):
 		if not body:
 			response.send_error(412, "Need a status").send()
 		else:
@@ -28,9 +26,11 @@ class StatusHandler(Handler):
 			statuses.add(status=body['status'],timestamp=datetime.now()).save()
 			response.send(204)
 	
-	def delete(self, request, response, user):
-		body = request.get_body()
-		pass
+	def delete(self, name, count=None):
+		print "Deleting status %s for user %s" % (name,count)
+		statuses = User.get(name=equals(name)).statuses
+		statuses.delete(id=count)
+		response.send(204)
 	
 # class FollowerHandler(Handler):
 # 	

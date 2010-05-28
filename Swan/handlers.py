@@ -1,5 +1,6 @@
 from Actors.keywords import *
 from Actors.Device.file import File
+from Actors.threadlocal import thread_local
 from Swan.static import log
 import mimetypes as mt
 
@@ -8,19 +9,19 @@ class Handler(StaticActor):
 	def birth(self):
 		pass
 	
-	def respond(self, request, specifier):
+	def respond(self, request, specifier, handler_ref):
 		log.debug(self, "responding to %s" % request)
 		response = request.start_response()
 		method = request.method
 		if method == 'OPTIONS':
 			self.options(specifier, request, response)
+			
 		handle_name = "%s_%s" % (method.lower(), specifier) if specifier else method.lower()
-		handle_method = getattr(self, handle_name, self.no_method)
-		# log.debug(self, "Handling request with %s" % handle_method)
-		params = dict([(k,v) for (k,v) in request.params.iteritems() if not v == None])
-		if method in ['put', 'delete', 'post']:
-			params['body'] = request.get_body()
-		handle_method(request, response, **params)
+		handle_method = thread_local.actor.state.get_method(handle_name)
+		
+		body = request.get_body() if (method in ['put', 'delete', 'post']) else None
+		handle_method.func_globals.update(request=request, response=response, body=body)
+		handle_method(**dict([(k,v) for (k,v) in request.params.iteritems() if not v == None]))
 			
 	
 	def no_method(self, request, response, **superfluous):
@@ -41,7 +42,7 @@ class Handler(StaticActor):
 
 class DefaultHandler(Handler):
 	
-	def do404(self, request, response):
+	def do404(self):
 		path = request.path
 		log.debug(self, "Resource for %s not found" % path)
 		response.send_error(404, "Resource at %s could not be found" % path).send()
@@ -54,7 +55,7 @@ class FileHandler(Handler):
 		self.root = root
 		self.workers = workers
 
-	def get(self, request, response, path):
+	def get(self, path):
 		filepath = self.root+path
 		
 		filename = filepath.split('/')[-1]
