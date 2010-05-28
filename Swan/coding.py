@@ -32,13 +32,22 @@ class SwanJSONEncoder(SwanEncoder, JSONEncoder):
 	def get_encoding(self, content):
 		return self.encode(content)
 	
-	def encodeModel(self, model):
+	def encodeModel(self, model, depth):
 		fields = getattr(model.__class__, '__fields')
-		return dict([(f,getattr(model,f)) for (f,t) in fields.iteritems() if not isinstance(t, ForeignRelation)])
+		objdict = dict()
+		for (f,t) in fields.iteritems():
+			if not  isinstance(t, ForeignRelation):
+				objdict[f] = getattr(model,f)
+			elif depth > 0:
+				fr = getattr(model,f)
+				if isinstance(fr, ModelInstance):
+					objdict[f] = self.encodeModel(fr, depth-1)
+		return objdict
+		# return dict([(f,getattr(model,f)) for (f,t) in fields.iteritems() if not isinstance(t, ForeignRelation)])
 
 	def default(self, obj):
 		if isinstance(obj, ModelInstance):
-			return self.encodeModel(obj)
+			return self.encodeModel(obj, 1)
 		if isinstance(obj, RelationSet) or isinstance(obj, Query):
 			return list(obj.__iter__())
 		return JSONEncoder.default(self,obj)
