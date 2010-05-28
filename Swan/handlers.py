@@ -9,7 +9,7 @@ class Handler(StaticActor):
 	def birth(self):
 		pass
 	
-	def respond(self, request, specifier, handler_ref):
+	def respond(self, request, specifier):
 		log.debug(self, "responding to %s" % request)
 		response = request.start_response()
 		method = request.method
