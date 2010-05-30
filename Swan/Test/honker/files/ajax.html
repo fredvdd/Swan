@@ -16,7 +16,7 @@ function swanjsRequest(method, path, onsuccess, onfailure){
 			if(request.status>=200 && request.status<300){
 				onsuccess(request.responseText, request.responseXML)
 			}else if(request.status>=400){
-				onfailure(request.responseText, request.responseXML)
+				onfailure(request.status, request.responseText, request.responseXML)
 			}
 		}
 	}
@@ -30,54 +30,112 @@ swanjsRequest.prototype.setHeader = function(key,value){
 }
 swanjsRequest.prototype.send = function(body){
 	this.request.send(body)
-	return this9
+	return this
+}
+
+function name(){
+	return document.getElementById('username').value;
 }
  
+function loadStatuses(){
+	new swanjsRequest('get', "/"+name()+"/statuses/", status_load).send()
+}
+
 function status_load(text, xml)
 {
-	span = document.getElementById('incoming');
 	console.log(text)
 	statuses = eval("(" + text + ")");
 	console.log(statuses.length)
 	val = "";
 	for(x in statuses){
 		stat = statuses[x]
-		val += '<span data-id="'+stat.id+'">At ' + stat.timestamp + ": " + stat.status + '. <span onclick="deletestatus(this.parentNode)">X</span></span><br />'
+		val += '<li data-id="'+stat.id+'">At ' + stat.timestamp + ": " + stat.status + '. <span onclick="deletestatus(this.parentNode)">X</span></li>'
 	}
-	table.innerHTML = val; //xmlhttp.responseText;
+	document.getElementById('statuses').innerHTML = val; //xmlhttp.responseText;
 }
  
 function status_post(e) {
-	user = 'Pete'
-	statustext = document.getElementById('statusfields').value
-	console.log(user, statustext)
-	new swanjsRequest('post', "/" + user + "/statuses/", function(text){
+	statustext = document.getElementById('statusinput').value
+	new swanjsRequest('post', "/" + name() + "/statuses/", function(text){
 			console.log(text)
-	}).setHeader("Content-type", "application/json").send(JSON.stringify({'status':statustext,'user':user}));
+	}, function(status,text){
+			console.log(status)
+	}).setHeader("Content-type", "application/json").send(JSON.stringify({'status':statustext,'user':name()}));
 	return false;
 }
 
 function deletestatus(status){
 	console.log("Deleting " + status.attributes.getNamedItem('data-id').value + ", " + status)
-	user = 'Pete'
 	status_id = status.attributes.getNamedItem('data-id').value
-	new swanjsRequest('delete', "/" + user + "/statuses/" + status_id, function(text){
+	new swanjsRequest('delete', "/" + name() + "/status/" + status_id, function(text){
 		status.parentNode.removeChild(status)
 	}).send()
 }
-//  
+
+function loadTimeline(){
+	new swanjsRequest('get', '/'+name()+"/timeline/",status_load).send()
+}
+
+function loadFollowing(){
+	new swanjsRequest('get', "/"+name()+'/following', function(text){
+		console.log(text)
+		followed_users = eval("("+text+")")
+		val = ""
+		for(x in followed_users){
+			fu = followed_users[x]
+			val += '<li data-id="'+fu.id+'">'+fu.name+'</li>'
+		}
+		document.getElementById('users').innerHTML = val
+	}).send()
+}
+
+function loadFollowers(){
+	new swanjsRequest('get', "/"+name()+'/followers', function(text){
+		console.log(text)
+		users = eval("("+text+")")
+		val = ""
+		for(x in users){
+			fu = users[x];
+			val += '<li data-id="'+fu.id+'">'+fu.name+'</li>'
+		}
+		document.getElementById('users').innerHTML = val;
+	}, function(status, text){
+		console.log(status)
+	}).send()
+}
+
+function loadUsers(){
+	new swanjsRequest('get', '/users/', function(text){
+		console.log(text)
+		users = eval("("+text+")")
+		val = ""
+		for(x in users){
+			fu = users[x];
+			val += '<li data-id="'+fu.id+'">'+fu.name+'</li>'
+		}
+		document.getElementById('users').innerHTML = val;
+	}, function(status, text){
+		console.log(status)
+	}).send()
+}
+
 </script> 
 </head> 
  
 <body> 
-<span id="incoming"></span><br />
-<table id="table"></table><br />
-
-<button onclick="new swanjsRequest('get', '/Pete/statuses/', status_load).send()">Query</button>
+	<label for="username">Username:</label><input type="text" placeholder="Enter your username..." name="username" value="" id="username">
+	<button onclick="loadStatuses();">Statuses</button>
+	<button onclick="loadTimeline();">Timeline</button>
+	<button onclick="loadFollowing();">Following</button>
+	<button onclick="loadFollowers();">Followers</button>
+	<button onclick="loadUsers();">All Users</button>
+	<ul id="statuses"></ul><br />
+	<ul id="users" style="border:1px solid black" ></ul><br />
 
 <form action="" method="post" accept-charset="utf-8" onsubmit="return(status_post())">
-	<label>Status:<input type="text" name="status" id="statusfields" /></label>
-	<p><input type="submit" value="Continue &rarr;"></p>
+	<p><label for="statusinput">Status:</label><textarea placeholder="What are you thinking?" name="status" id="statusinput"></textarea></p>
+	
+	<p><input type="submit" value="Honk"/></p>
 </form>
 
 

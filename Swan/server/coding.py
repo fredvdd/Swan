@@ -1,6 +1,7 @@
 from json import JSONEncoder, dumps, loads
 from Swan.db import *
 from Swan.static import log
+from types import NoneType, UnicodeType, ListType, DictType
 
 class SwanEncoder(object):
 	
@@ -46,10 +47,15 @@ class SwanJSONEncoder(SwanEncoder, JSONEncoder):
 		# return dict([(f,getattr(model,f)) for (f,t) in fields.iteritems() if not isinstance(t, ForeignRelation)])
 
 	def default(self, obj):
+		if isinstance(obj, PotentialModelInstance):
+			obj._check_cache()
+			return self.encodeModel(obj.cache, 0)	
 		if isinstance(obj, ModelInstance):
 			return self.encodeModel(obj, 1)
 		if isinstance(obj, RelationSet) or isinstance(obj, Query):
 			return list(obj.__iter__())
+		else:
+			return str(obj)
 		return JSONEncoder.default(self,obj)
 		
 class SwanDecoder(object):
@@ -68,7 +74,22 @@ class PassThroughDecoder(SwanDecoder):
 class SwanJSONDecoder(object):
 	
 	def get_decoding(self,encoded):
+		print encoded
+		print type(encoded)
+		content = loads(encoded)
+		print type(content)
+		if isinstance(content, UnicodeType):
+			return str(content)
+		elif isinstance(content, DictType):
+			return self.processDict(content)
+		else:
+			return self.processList(content)
+		
+	def processDict(self, content):
 		return dict([(str(k),v) for (k,v) in loads(encoded).iteritems()])
+
+	def processList(self, content):
+		return map(lambda x: str(x) if isinstance(x, UnicodeType) else processDict(x), content)
 
 encoders = dict({'application/json':SwanJSONEncoder})
 decoders = dict({'application/json':SwanJSONDecoder})

@@ -9,7 +9,7 @@ class User(Model):
 		print "This is test"
 	
 	def __repr__(self):
-		return "Name: %s, Email:%s" % (self.name, self.email)
+		return "User"#"Name: %s, Email:%s" % (self.name, self.email)
 		
 
 class Status(Model):
@@ -18,7 +18,7 @@ class Status(Model):
 	timestamp = TimeField()
 	
 	def __repr__(self):
-		return "At %s, %s" % (self.timestamp, self.status) 
+		return "Status"#"At %s, %s" % (self.timestamp, self.status) 
 
 class Follow(Model):
 	user_id = ForeignKey('User', "follows")
@@ -27,4 +27,4 @@ class Follow(Model):
 	def __repr__(self):
 		# print "asdfasdfas"
 		# print "Getting repr for Follow %s %s" % (type(self.user_id), type(self.followed_user))
-		return "%s follows %s" % (self.user_id, self.followed_user)
+		return "Follow"#"%s follows %s" % (self.user_id, self.followed_user)

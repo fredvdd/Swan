@@ -19,9 +19,11 @@ class Handler(StaticActor):
 		handle_name = "%s_%s" % (method.lower(), specifier) if specifier else method.lower()
 		handle_method = thread_local.actor.state.get_method(handle_name)
 		
-		body = request.get_body() if (method in ['put', 'delete', 'post']) else None
-		handle_method.func_globals.update(request=request, response=response, body=body)
-		handle_method(**dict([(k,v) for (k,v) in request.params.iteritems() if not v == None]))
+		handle_method.func_globals.update(request=request, response=response)
+		params = dict([(k,v) for (k,v) in request.params.iteritems() if not v == None])
+		if method in ['PUT', 'POST']:
+			params.update({'body':request.get_body()})
+		handle_method(**params)
 			
 	
 	def no_method(self, request, response, **superfluous):
@@ -55,8 +57,8 @@ class FileHandler(Handler):
 		self.root = root
 		self.workers = workers
 
-	def get(self, path):
-		filepath = self.root+path
+	def get(self, path=None):
+		filepath = self.root+path if path else self.root
 		
 		filename = filepath.split('/')[-1]
 		content_type = mt.guess_type(filename)[0]
@@ -70,7 +72,7 @@ class FileHandler(Handler):
 
 			
 	def send_get_response(self, content, request, response, content_type):
-		path = request.params['path']
+		path = request.params.get('path','/')
 		if content:
 			log.debug(self, "responding with content of %s for %s" % (path, request.socket))
 			response.with_status(200).with_content_type(content_type).with_content("%s" % content).send()
@@ -79,41 +81,3 @@ class FileHandler(Handler):
 			log.error(self, "couldn't find %s for %s" % (path, request.socket))
 			response.send_error(404, "Resource at %s could not be found" % path).send()
 			
-	# def head(self, request):
-	# 	pass
-	
-class DatabaseHandler(Handler):
-	
-	#def birth(self, workers):
-		#self.workers = workers
-		#clazz = self.__class__
-		#self.table = clazz.__name__
-		#self.fields = [(x,y) for x,y in clazz.__dict__.iteritems() if isinstance(y, Field)]
-		#self.fieldnames = [x for x,y in self.fields]
-		#self.fieldstring = reduce(lambda a,b: "%s, %s" % (a,b), self.fieldnames)
-		
-	#def get(self, request, response):
-		#rows = one(self.workers).execute("SELECT %s FROM %s" % (self.fieldstring, self.table))
-		#dicts = [dict(zip(self.fieldnames, row)) for row in rows]
-		#enc = json.dumps({self.table : dicts})
-		#response.with_status(200).with_content_type("application/json").and_content(enc).send()
-		
-	#def get_detail(self, request, response):
-		#col, val = (request.params['col'], request.params['val'])
-		#sql = "SELECT %s FROM %s WHERE %s = ?" % (self.fieldstring, self.table, col)
-		#rows = one(self.workers).execute(sql, (val,))
-		
-		#dicts = [dict(zip(self.fieldnames, row)) for row in rows]
-		#enc = json.dumps({self.table : dicts})
-		#response.with_status(200).with_content_type("application/json").and_content(enc).send()
-
-	#def put(self, request, response):
-		#pass
-		##elements = self.decode(request.get_body(), request.headers['Content-type'])[self.table]
-		##values = 
-	
-	#def post(self, request, response):
-		#pass
-		
-	#def delete(self, request, response):
-		pass

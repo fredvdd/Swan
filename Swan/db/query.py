@@ -5,12 +5,12 @@ from Swan.db import log
 
 class Query(object):
 	
-	def __init__(self, model, table, instance_type, **filters):
+	def __init__(self, model, model_type, **filters):
 		self.model = model
-		self.table = table
-		self.instance_type = instance_type
+		self.table = model_type.__name__
+		self.instance_type = model_type.instance_type
 		self.filters = filters
-		self.cache = []
+		self.cache = None
 		self.cached= False
 
 	def filter(self, **filters):
@@ -22,7 +22,7 @@ class Query(object):
 		cols = [f for f in getattr(self.instance_type, '__fields')]
 		query = "SELECT * FROM " + table
 		if len(self.filters) < 1:
-			return query
+			return (cols, query)
 		return (cols, query + " WHERE " + reduce(lambda s, (p,v): "%s %s AND %s" % (p,v,s), self.filters.iteritems(), "")[:-4])
 		
 	def _evaluate(self):
@@ -52,23 +52,30 @@ class Query(object):
 	def __getitem__(self,key):
 		self._check_cache()
 		return self.cache[key]
+	
+	def __add__(self,query):
+		self._check_cache()
+		query._check_cache()
+		self.cache += query.cache
+		return self
 		
 	def __deepcopy__(self,memo):
 		return Query(self.model.__deepcopy__(memo), self.table, **self.filters)
 	
 	def __getstate__(self):
-		return (self.model, self.table, self.filters, self.cache, self.cached)
+		return (self.model, self.table, self.instance_type, self.filters, self.cache, self.cached)
 	
 	def __setstate__(self, state):
-		self.model, self.table, self.filters, self.cache, self.cached = state
+		self.model, self.table, self.instance_type, self.filters, self.cache, self.cached = state
 		
 class RelationSet(Query):
 	
-	def __init__(self, relation, join_model, join_table, **filters):
+	def __init__(self, relation, join_model, join_model_type, **filters):
 		self.relation, self.join_col = (relation.table, relation.col)
 		self.join_model = join_model
-		self.join_table = join_table
-		Query.__init__(self, self.relation.pool.one(), relation.name, self.relation.instance_type, **filters)
+		self.join_table = join_model_type.__name__
+		self.join_model_type = join_model_type
+		Query.__init__(self, self.relation.pool.one(), self.relation, **filters)
 		self.join_instance = None
 		
 	def _build_query_string(self, table):
@@ -114,7 +121,9 @@ class RelationSet(Query):
 	def add(self, **props):
 		# print "Adding %s" % props
 		if not self.join_instance:
-			self.join_instance = self.join_model.execute_select(Query._build_query_string(self, self.join_table))[0];
+			desc = list(getattr(self.join_model_type.instance_type, '__fields').iterkeys())
+			cols, query = Query._build_query_string(self, self.join_table)
+			self.join_instance = self.join_model.execute_select(desc, query)[0];
 		props.update({self.join_col:self.join_instance.id})
 		# print "Props now %s" % props
 		return self.relation.create(**props)

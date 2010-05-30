@@ -2,7 +2,7 @@ from Actors.keywords import *
 from BaseHTTPServer import BaseHTTPRequestHandler
 from time import time, gmtime
 from json import JSONEncoder, dumps, loads
-from Swan.coding import encoders, decoders, PassThroughEncoder, PassThroughDecoder
+from coding import encoders, decoders, PassThroughEncoder, PassThroughDecoder
 
 class Request(object):
 	

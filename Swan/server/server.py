@@ -1,5 +1,5 @@
 from Actors.keywords import *
-from Swan.request import Request
+from request import Request
 from Swan.static import log
 from BaseHTTPServer import BaseHTTPRequestHandler
 from itertools import cycle

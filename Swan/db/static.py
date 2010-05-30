@@ -1,6 +1,6 @@
-from Swan.db.model import Model, ModelInstance
-from Swan.db.fields import *
-from Swan.db.relation import ForeignRelation
+from model import Model, ModelInstance
+from fields import *
+from relation import ForeignRelation
 from inspect import isclass
 import types
 import Swan
@@ -10,18 +10,19 @@ def extract_models(modelpath):
 	module = __import__(modelpath, globals(), locals(), [''])
 	models = {}
 	for x in dir(module):
-		 if isclass(module.__dict__[x]) and issubclass(module.__dict__[x], Model):
+		 if isclass(module.__dict__[x]) and issubclass(module.__dict__[x], Model) and not x == 'Model':
 			models[x] = module.__dict__[x]													
 	return models
 
 
 def init_db_models(modelpath):
 	models = extract_models(modelpath)
-	print "Initialising models %s" % [x for x in models]
+	print "Initialising models:",
 	fkss = dict([[x,{}] for x in models])
 	fieldss = dict([[x,{}] for x in models])
 	funcss = dict([[x,{}] for x in models])
 	for model in models:
+		print model,
 		funcss[model] = dict([(x,y) for (x,y) in models[model].__dict__.iteritems() if isinstance(y, types.FunctionType)])
 		fields = {}
 		for parent in models[model].__mro__:
@@ -38,6 +39,7 @@ def init_db_models(modelpath):
 			else:
 				break
 		fieldss[model] = fields
+	print "."
 	for model in models:
 		funcss[model].update(fkss[model])
 		# funcss[model].update({'__fields':fieldss[model]})
