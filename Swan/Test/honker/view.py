@@ -29,11 +29,11 @@ class ControllerActor(LocalActor):
 		callback(self.users.get(), layout)
 		
 	def getTimeline(self, layout):
-		print "Getting timeline"
+		print "Getting timeline for " + self.username
 		callback(self.timeline.get(self.username), layout)
 		
 	def getStatuses(self, layout):
-		print "Getting statuses"
+		print "Getting statuses for " + self.username
 		callback(self.statuses.get(self.username), layout)
 
 
@@ -41,6 +41,7 @@ class UserList(List):
 
 	def __init__(self, control):
 		super(UserList, self).__init__()
+		self.setAttribute('id','ul')
 		self.controller = control
 		followers = Button("Followers").onClick(self.controller.loadFollowers, self.displayUsers)
 		following = Button("Following").onClick(self.controller.loadFollowing, self.displayUsers)
@@ -57,6 +58,7 @@ class StatusList(List):
 
 	def __init__(self, control):
 		super(UserList, self).__init__()
+		self.setAttribute('id','sl')
 		self.controller = control
 		timeline = Button("Timeline").onClick(self.controller.getTimeline, self.displayStatuses)
 		statuses = Button("Statuses").onClick(self.controller.getStatuses, self.displayStatuses)
@@ -66,12 +68,13 @@ class StatusList(List):
 		while(len(self) > 1):
 			self.remove(self.lastElement())
 		for s in ss:
-			self.addItem(P(s.status),P(s.timestamp))
+			self.addItem(P(s.user_id.name), P(s.status),P(s.timestamp))
 
 class StatusForm(Form):
 
 	def __init__(self, control, statuslist):
-		super(StatusForm, self).__init__('POST', '')	
+		super(StatusForm, self).__init__('POST', '')
+		self.setAttribute('id','sf')	
 		self.controller = control
 		self.statuslist = statuslist
 		self.textarea = TextArea().setAttribute("placeholder", "What's up?")
@@ -90,17 +93,20 @@ class StatusForm(Form):
 	def fail(self, status):
 		print "Submission failed"
 
-def loadInterface(user_field):
-	body.removeAll()
-	username = user_field.getValue()
+def loadInterface(login_box):
+	username = login_box.elementAt(1).getValue()
+	while(len(login_box) > 1):
+		login_box.remove(login_box.lastElement())
 	controller = ControllerActor(username)
-	statuses = StatusList(controller).setAttribute("style","border:1px solid red")
-	users = UserList(controller).setAttribute("style","border:1px solid blue")
+	statuses = StatusList(controller)
+	users = UserList(controller)
 	statusform = StatusForm(controller, statuses)
-	body.add(statuses, statusform, users)
+	body.add(statusform, statuses, users)
+	controller.getTimeline(statuses.displayStatuses)
 
 
 def launch():
+	login_box = Container().setAttribute('id', 'lb')
 	user_field = TextBox().withPlaceholder("Enter your username...")
-	login_button = Button('\'Login\'').onClick(loadInterface, user_field)
-	body.add(user_field, login_button)
+	login_button = Button('\'Login\'').onClick(loadInterface, login_box)
+	body.add(login_box.add(P('Honker'), user_field, login_button))

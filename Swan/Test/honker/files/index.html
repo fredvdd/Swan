@@ -5,6 +5,7 @@
 			JS Test
 		</title>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<link rel="stylesheet" href="styles.css" type="text/css" media="screen" title="no title" charset="utf-8" />
 		<script type="text/javascript">
 //<![CDATA[
 
@@ -796,9 +797,7 @@ failure = typeof(failure) != 'undefined' ? failure : native_failure_default;
 			}
 		};
 		request.onreadystatechange = handler;
-		var bodystring = JSON.stringify(body);
-		console.log(bodystring)
-		sxhr.open().setHeader('Content-type','application/json').send(bodystring)
+		sxhr.open().setHeader('Content-type','application/json').send(JSON.stringify(body))
 }
 
 //** End Module: native.py **//
@@ -1124,13 +1123,13 @@ native_callback(this.users.get(), layout)
 }
 _.loadUsers.name = 'loadUsers';
 _.getTimeline = function(layout){
-console.log(new String("Getting timeline").__str__()+"\n");
+console.log(new String("Getting timeline for ").__add__(this.username).__str__()+"\n");
 
 native_callback(this.timeline.get(this.username), layout)
 }
 _.getTimeline.name = 'getTimeline';
 _.getStatuses = function(layout){
-console.log(new String("Getting statuses").__str__()+"\n");
+console.log(new String("Getting statuses for ").__add__(this.username).__str__()+"\n");
 
 native_callback(this.statuses.get(this.username), layout)
 }
@@ -1155,6 +1154,7 @@ _=view_UserList.prototype
 _.name = "UserList";
 _.__init__ = function(control){
 super(view_UserList, this, '__init__').__init__()
+this.setAttribute(new String("id"), new String("ul"))
 this.controller = control
 var followers = new Input_Button(new String("Followers")).onClick(this.controller.loadFollowers, this.displayUsers)
 var following = new Input_Button(new String("Following")).onClick(this.controller.loadFollowing, this.displayUsers)
@@ -1196,6 +1196,7 @@ _=view_StatusList.prototype
 _.name = "StatusList";
 _.__init__ = function(control){
 super(view_UserList, this, '__init__').__init__()
+this.setAttribute(new String("id"), new String("sl"))
 this.controller = control
 var timeline = new Input_Button(new String("Timeline")).onClick(this.controller.getTimeline, this.displayStatuses)
 var statuses = new Input_Button(new String("Statuses")).onClick(this.controller.getStatuses, this.displayStatuses)
@@ -1210,7 +1211,7 @@ this.remove(this.lastElement())
 var lambda3 = ss
 for (lambda4 in lambda3){
 if(lambda3.hasOwnProperty(lambda4)){var s = lambda3[lambda4];
-this.addItem(new Composite_P(s.status), new Composite_P(s.timestamp))
+this.addItem(new Composite_P(s.user_id.name), new Composite_P(s.status), new Composite_P(s.timestamp))
 }
 }
 
@@ -1236,6 +1237,7 @@ _=view_StatusForm.prototype
 _.name = "StatusForm";
 _.__init__ = function(control,statuslist){
 super(view_StatusForm, this, '__init__').__init__(new String("POST"), new String(""))
+this.setAttribute(new String("id"), new String("sf"))
 this.controller = control
 this.statuslist = statuslist
 this.textarea = new Input_TextArea().setAttribute(new String("placeholder"), new String("What's up?"))
@@ -1262,20 +1264,25 @@ console.log(new String("Submission failed").__str__()+"\n");
 }
 _.fail.name = 'fail';
 
-view_loadInterface = function(user_field){
-native_body.removeAll()
-var username = user_field.getValue()
+view_loadInterface = function(login_box){
+var username = login_box.elementAt(new Number(1)).getValue()
+while(len(login_box).__gt__(new Number(1))){
+login_box.remove(login_box.lastElement())
+}
+
 var controller = new view_ControllerActor(username)
-var statuses = new view_StatusList(controller).setAttribute(new String("style"), new String("border:1px solid red"))
-var users = new view_UserList(controller).setAttribute(new String("style"), new String("border:1px solid blue"))
+var statuses = new view_StatusList(controller)
+var users = new view_UserList(controller)
 var statusform = new view_StatusForm(controller, statuses)
-native_body.add(statuses, statusform, users)
+native_body.add(statusform, statuses, users)
+controller.getTimeline(statuses.displayStatuses)
 }
 
 view_launch = function(){
+var login_box = new Composite_Container().setAttribute(new String("id"), new String("lb"))
 var user_field = new Input_TextBox().withPlaceholder(new String("Enter your username..."))
-var login_button = new Input_Button(new String("'Login'")).onClick(view_loadInterface, user_field)
-native_body.add(user_field, login_button)
+var login_button = new Input_Button(new String("'Login'")).onClick(view_loadInterface, login_box)
+native_body.add(login_box.add(new Composite_P(new String("Honker")), user_field, login_button))
 }
 
 //** End Module: view.py **//
