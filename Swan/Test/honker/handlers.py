@@ -1,10 +1,10 @@
-from Swan.handlers import Handler, FileHandler
+from Swan.server import Handler, FileHandler
 from models import * 
 from datetime import datetime
 
 class RootHandler(FileHandler):
 	root = "/files/"
-	binding = "/honker/`path`"
+	bindings = {"default":"/honker/`path`?"}
 
 class Statuses(Handler):
 	bindings = {
@@ -24,7 +24,7 @@ class Statuses(Handler):
 			response.send_error(412, "Need a status").send()
 		else:
 			statuses = User.get(name=equals(name)).statuses
-			newstatus = statuses.add(status=body['status'],timestamp=datetime.now()).save()
+			newstatus = statuses.add(status=body,timestamp=datetime.now()).save()
 			response.send(200, newstatus, 'application/json')
 	
 	def delete_status(self, name, id=None):
@@ -79,11 +79,11 @@ class Users(Handler):
 		
 class Timelines(Handler):
 	bindings = {
-		'default':'/`name`/timeline'
+		'default':'/`name`/timeline/?'
 	}
 	
 	def get(self, name):
-		print "Get timline for %s" % name
+		print "Get timeline for %s" % name
 		user = User.get(name=equals(name))
 		# statuses = list()
 		# for followed in user.follows:

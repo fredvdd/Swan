@@ -1,0 +1,1289 @@
+<!DOCTYPE HTML>
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>
+			JS Test
+		</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<script type="text/javascript">
+//<![CDATA[
+
+len = function(l){
+	return l.__len__();
+}
+
+map = function(f, l){
+	var r = [];
+	for(x in l){
+		r.push(f(l[x]));
+	}
+	return r;
+}
+
+range = function(sta, sto, ste){
+	ste = typeof(ste) != 'undefined' ? ste : 1;
+	if(typeof(sto) == 'undefined'){
+		sto = sta;
+		sta = 0;
+	}
+	r = []
+	for(i = sta; i < sto; i+=ste){
+		r.push(i)
+	}
+	return r;
+}
+
+isinstance = function(inst, clas){
+	var target = clas.prototype.name;
+	var proto = inst.__proto__;
+	while(proto){
+		if(proto.name == target){
+			return new Boolean(true);
+		}
+		proto = proto.__proto__;
+	}
+	return new Boolean(false);
+}
+
+str = function(a){
+	return new String(a)
+}
+
+super = function(claxx, instance, name){
+	var r =  {}
+	r[name] = function(args){
+				claxx.superprototype[name].call(instance, args)
+			}
+	return r
+}
+
+object = Object
+
+function extend(sub, sup) {
+    function Intermediary() {}
+    Intermediary.prototype = sup.prototype;
+    sub.prototype = new Intermediary();
+    sub.prototype.constructor = sub;
+    sub.super = sup;
+	sub.superprototype = sup.prototype;
+}
+
+var id_counter = 21
+
+init = function(){
+	$bdy = document.documentElement.lastChild
+	native_body = new native_Body()
+	id_counter++
+	console.log("Initialised")
+	//
+	view_launch()
+}
+
+StarArgs = function(in_arr){
+	this.arr = in_arr
+}
+StarArgs.prototype.name = "StarArgs"
+
+extractVarArgs = function(vargs, start, end){
+	if((end - start) == 1 && (vargs[start].__proto__.name == 'StarArgs')){
+		return vargs[start].arr
+	}else{
+		return Array.prototype.slice.call(vargs, start, end);
+	}
+}
+
+Object.prototype.__lt__ = function(a){
+	return this.valueOf() < a
+}
+Object.prototype.__le__ = function(a){
+	return this.valueOf() <= a
+}
+Object.prototype.__eq__ = function(a){
+	return this.valueOf() == a
+}
+Object.prototype.__ne__ = function(a){
+	return this.valueOf() != a
+}
+Object.prototype.__gt__ = function(a){
+	return this.valueOf() > a
+}
+Object.prototype.__ge__ = function(a){
+	return this.valueOf() >= a
+}
+Object.prototype.__str__ = function(){
+	return new String(this.valueOf())
+}
+
+Number.prototype.__neg__ = function(){
+	return new Number(-this.valueOf())
+}
+
+Number.prototype.__pos__ = function(){
+	return new Number(+this.valueOf())
+}
+
+Number.prototype.__inv__ = function(){
+	return new Number(~this.valueOf())
+}
+
+Number.prototype.__pow__ = function(a){
+	return new Number(Math.pow(this.valueOf(), a))
+}
+
+Number.prototype.__div__ = function(a){
+	return new Number(this.valueOf() / a)
+}
+
+Number.prototype.__mod__ = function(a){
+	return new Number(this.valueOf() % a)
+}
+
+Number.prototype.__floordiv__ = function(a){
+	return new Number(Math.floor(this.valueOf() / a))
+}
+
+Number.prototype.__mul__ = function(a){
+	return new Number(this.valueOf() * a)
+}
+
+Number.prototype.__add__ = function(a){
+	return new Number(this.valueOf() + a)
+}
+
+Number.prototype.__sub__ = function(a){
+	return new Number(this.valueOf() - a)
+}
+
+Number.prototype.__and__ = function(a){
+	return new Number(this.valueOf() & a)
+}
+
+Number.prototype.__or__ = function(a){
+	return new Number(this.valueOf() | a)
+}
+
+Number.prototype.__xor__ = function(a){
+	return new Number(this.valueOf() ^ a)
+}
+
+Number.prototype.__iadd__ = function(a){
+	this.valueOf() += a
+}
+Number.prototype.__iand__ = function(a){
+	this.valueOf() = this.valueOf() & a
+}
+Number.prototype.__idiv__ = function(a){
+	this.valueOf() /= a
+}
+Number.prototype.__ifloordiv__ = function(a){
+	this.valueOf() = Math.floor(this.value, a) 
+}
+Number.prototype.__ilshift__ = function(a){
+	this.valueOf() = this.valueOf() << a
+}
+ Number.prototype.__imod__ = function(a){
+	this.valueOf() = this.valueOf() % a
+}
+Number.prototype.__imul__ = function(a){
+	this.valueOf() *= a
+}
+Number.prototype.__ior__ = function(a){
+	this.valueOf() = this.valueOf() | a
+}
+Number.prototype.__ipow__ = function(a){
+	this.valueOf() = Math.pow(this.value, a)
+}
+Number.prototype.__irshift__ = function(a){
+	this.valueOf() = this.valueOf() >> a
+}
+Number.prototype.__isub__ = function(a){
+	this.valueOf() -= a
+}
+Number.prototype.__ixor__ = function(a){
+	this.valueOf() = this.valueOf() ^ a 
+}
+
+String.prototype.__add__ = function(a){
+	return new String(this.valueOf() + a)
+}
+
+String.prototype.__iadd__ = function(a){
+	this.valueOf() += a
+}
+
+String.prototype.strip = function() { return this.replace(/^\s+|\s+$/, ''); };
+
+slice = function(start, end, step){
+	return new SliceObj(start,end,step)
+}
+SliceObj = function(start,end,step){
+	this.start = start
+	this.end = end
+	this.step = step
+}
+extend(SliceObj, Object)
+SliceObj.prototype.name = "slice"
+
+Array.prototype.__setitem__ = function(index, value){
+	if(index.__proto__.name=='slice'){
+		var start = (index.start < 0) ? index.start+this.length : index.start; 
+		var end   = (index.end  <= 0) ? index.end+this.length   : index.end; 
+		var step  = index.step;
+		for(i = start, j=0; i < end; i += step, j++){
+			if(this[i]){
+				this[i] = value[j]
+			}
+		}
+	}else{
+		this[index] = value;
+	}
+}
+Array.prototype.__getitem__ = function(index){
+	if(index.__proto__.name=='slice'){
+		var start = (index.start < 0) ? index.start+this.length : index.start; 
+		var end   = (index.end  <= 0) ? index.end+this.length   : index.end; 
+		var step  = index.step;
+		var r = [];
+		for(i = start; i < end; i += step){
+			if(this[i]){
+				r.push(this[i]);
+			}
+		}
+		return r
+	}else{
+		return this[index]
+	}
+}
+Array.prototype.__delitem__ = function(index){
+	if(index.__proto__.name=='slice'){
+		var start = (index.start < 0) ? index.start+this.length : index.start; 
+		var end   = (index.end  <= 0) ? index.end+this.length   : index.end; 
+		var step  = index.step;
+		var j = 0
+		for(i = start; i < end; i += step){
+			if(this[i-j]){
+				this.splice(i-j,1)
+				j++
+			}
+		}
+	}else{
+		this.splice(index, 1)
+	}
+}
+Array.prototype.__getslice__ = function(start, end){
+	if(start < 0){
+		start += this.length
+	}
+	if(end < 0){
+		end += this.length
+	}
+	return this.slice(start, end)
+}
+Array.prototype.__setslice__ = function(start, end, seq){
+	if(start < 0){
+		start += this.length
+	}
+	if(end < 0){
+		end += this.length
+	}
+	Array.prototype.splice.apply(this, new Array(start, end-start).concat(seq))
+}
+Array.prototype.__delslice__ = function(start,end){
+	if(start < 0){
+		start += this.length
+	}
+	if(end < 0){
+		end += this.length
+	}
+	this.splice(start,end-start)
+}
+Array.prototype.__len__ = function(){
+	return this.length
+}
+Array.prototype.__str__ = function(){
+	return new String("[" + this.valueOf() + "]")
+}
+Array.prototype.append = function(a){
+	this.push(a)
+}
+
+Dict = function(content){
+	this.__proto__.length = 0
+	for(x in content){
+		if(content.hasOwnProperty(x)){
+			this[x] = content[x]
+			this.__proto__.length += 1
+		}
+	}
+}
+extend(Dict, Object)
+
+Dict.prototype.__len__ = function(){
+	return this.__proto__.length
+}
+
+Dict.prototype.__setitem__ = function(key, value){
+	if(!this.hasOwnProperty(key)){
+		this.__proto__.length+=1
+	}
+	this[key] = value
+}
+
+Dict.prototype.__getitem__ = function(key){
+	return this[key]
+}
+
+Dict.prototype.__delitem__ = function(key){
+	delete this[key]
+}
+
+Dict.prototype.__str__ = function(){
+	str = new String("{")
+	for(x in this){
+		if(this.hasOwnProperty(x)){
+			str += x.__str__()
+			str += ": "
+			str += this[x].__str__()
+			str += ", "
+		} 
+	}
+	return str.substring(0, str.length-2) + "}"
+}
+
+Dict.prototype.iteritems = function(){
+	r = []
+	for(x in this){
+		if(this.hasOwnProperty(x)){
+			r.append([x,this[x]])
+		}
+	}
+	return r;
+}
+
+//
+function swanjsRequest(method, path){
+		this.method = method;
+		this.path = path;
+		this.request = new XMLHttpRequest();
+	}
+	
+	swanjsRequest.prototype.open = function(){
+		this.request.open(this.method, this.path, true)
+		return this;
+	}
+
+	swanjsRequest.prototype.setHeader = function(key,value){
+		this.request.setRequestHeader(key, value)
+		return this
+	}
+	swanjsRequest.prototype.send = function(body){
+		this.request.send(body)
+		return this
+	}
+
+
+	Followers = function(){}
+_ = Followers.prototype;
+_.delete_follower = function(name,follower){
+	return [new swanjsRequest('delete', '/'+name+'/follower/'+follower+''), null]
+};
+_.get = function(name){
+	return [new swanjsRequest('get', '/'+name+'/following'), null]
+};
+_.get_followers = function(name){
+	return [new swanjsRequest('get', '/'+name+'/followers'), null]
+};
+_.post = function(name){
+	return [new swanjsRequest('post', '/'+name+'/following'), body]
+};
+RootHandler = function(){}
+_ = RootHandler.prototype;
+_.get = function(path){
+	path = typeof(path) != 'undefined' ? path : '';
+	return [new swanjsRequest('get', '/honker/`path`'), null]
+};
+Statuses = function(){}
+_ = Statuses.prototype;
+_.delete_status = function(name,id){
+	id = typeof(id) != 'undefined' ? id : '';
+	return [new swanjsRequest('delete', '/'+name+'/status/`id`'), null]
+};
+_.get = function(name,count){
+	count = typeof(count) != 'undefined' ? count : '';
+	return [new swanjsRequest('get', '/'+name+'/statuses/'+count+''), null]
+};
+_.post = function(name,body,count){
+	count = typeof(count) != 'undefined' ? count : '';
+	return [new swanjsRequest('post', '/'+name+'/statuses/'+count+''), body]
+};
+Timelines = function(){}
+_ = Timelines.prototype;
+_.get = function(name){
+	return [new swanjsRequest('get', '/'+name+'/timeline'), null]
+};
+Users = function(){}
+_ = Users.prototype;
+_.get = function(){
+	return [new swanjsRequest('get', '/users'), null]
+};
+_.get_user = function(name){
+	return [new swanjsRequest('get', '/user/'+name+''), null]
+};
+_.post = function(){
+	return [new swanjsRequest('post', '/users'), body]
+};
+
+
+//
+//**** Module: UIElement.py ****//
+UIElement_UIElement = function(){
+for(x in this.__proto__){
+				if(this.__proto__.hasOwnProperty(x)){
+					this.__proto__[x].__self__ = this
+				}
+			}	var __p = UIElement_UIElement.prototype;
+	if(__p.hasOwnProperty("__init__")){
+		__p.__init__.apply(this, arguments);
+	}else{
+		while(__p.hasOwnProperty('__proto__')){
+			__p = __p.__proto__;
+			if(__p.hasOwnProperty("__init__")){
+				__p.__init__.apply(this, arguments);
+				return;			}		}	}};
+extend(UIElement_UIElement, object);
+_=UIElement_UIElement.prototype
+_.name = "UIElement";
+_.__init__ = function(type,attrs){
+this.element = document.createElement(type)
+this.element.proxy = this
+this.element.id = id_counter++
+if(attrs){
+this.setAttributes(attrs)
+} 
+}
+_.__init__.name = '__init__';
+_.getElement = function(){
+return this.element;
+}
+_.getElement.name = 'getElement';
+_.setAttributes = function(attrs){
+var lambda1 = attrs.iteritems()
+for (lambda2 in lambda1){
+if(lambda1.hasOwnProperty(lambda2)){lambda3 = lambda1[lambda2];
+
+var x = lambda3[0]
+var y = lambda3[1]
+this.setAttribute(x, y)
+}
+}
+
+return this;
+}
+_.setAttributes.name = 'setAttributes';
+_.setAttribute = function(name,value){
+this.element.setAttribute(name, value)
+return this;
+}
+_.setAttribute.name = 'setAttribute';
+_.setStyles = function(styles){
+var lambda4 = styles.iteritems()
+for (lambda5 in lambda4){
+if(lambda4.hasOwnProperty(lambda5)){lambda6 = lambda4[lambda5];
+
+var x = lambda6[0]
+var y = lambda6[1]
+this.setStyle(x, y)
+}
+}
+
+return this;
+}
+_.setStyles.name = 'setStyles';
+_.setStyle = function(name,value){
+this.element.style[name] = value
+return this;
+}
+_.setStyle.name = 'setStyle';
+_.nextElement = function(){
+return this.element.nextSibling.proxy;
+}
+_.nextElement.name = 'nextElement';
+_.prevElement = function(){
+return this.element.prevSibling.proxy;
+}
+_.prevElement.name = 'prevElement';
+
+//** End Module: UIElement.py **//
+
+//**** Module: Composite.py ****//
+
+Composite_Composite = function(){
+for(x in this.__proto__){
+				if(this.__proto__.hasOwnProperty(x)){
+					this.__proto__[x].__self__ = this
+				}
+			}	var __p = Composite_Composite.prototype;
+	if(__p.hasOwnProperty("__init__")){
+		__p.__init__.apply(this, arguments);
+	}else{
+		while(__p.hasOwnProperty('__proto__')){
+			__p = __p.__proto__;
+			if(__p.hasOwnProperty("__init__")){
+				__p.__init__.apply(this, arguments);
+				return;			}		}	}};
+extend(Composite_Composite, UIElement_UIElement);
+_=Composite_Composite.prototype
+_.name = "Composite";
+_.__init__ = function(elem,attrs){
+super(Composite_Composite, this, '__init__').__init__(elem, attrs)
+this.alphaIndex = new String("a")
+this.childCount = new Number(0)
+}
+_.__init__.name = '__init__';
+_.add = function(elems){
+var elems=extractVarArgs(arguments,0,arguments.length);
+var lambda1 = elems
+for (lambda2 in lambda1){
+if(lambda1.hasOwnProperty(lambda2)){var elem = lambda1[lambda2];
+this.element.appendChild(elem.getElement())
+elem.container = this
+this.childCount = this.childCount.__add__(new Number(1))
+}
+}
+
+return this;
+}
+_.add.name = 'add';
+_.addAtPosition = function(newelement,position){
+var elem = this.firstElement()
+while(position.__gt__(new Number(0))){
+var elem = elem.nextElement()
+position = position.__sub__(new Number(1))
+}
+
+if(elem){
+this.addBefore(newelement, elem)
+}  else {
+this.add(newelement)
+}
+
+}
+_.addAtPosition.name = 'addAtPosition';
+_.addBefore = function(newelement,refelement){
+this.element.insertBefore(newelement.element, refelement.element)
+newelement.container = this
+this.childCount = this.childCount.__add__(new Number(1))
+}
+_.addBefore.name = 'addBefore';
+_.addAfter = function(newelement,refelement){
+if(refelement.__eq__(this.lastElement())){
+this.add(newelement)
+}  else {
+this.addBefore(newelement, refelement.nextElement())
+}
+
+}
+_.addAfter.name = 'addAfter';
+_.firstElement = function(){
+return this.element.firstChild.proxy;
+}
+_.firstElement.name = 'firstElement';
+_.lastElement = function(){
+return this.element.lastChild.proxy;
+}
+_.lastElement.name = 'lastElement';
+_.elementAt = function(position){
+return this.element.childNodes.item(position).proxy;
+}
+_.elementAt.name = 'elementAt';
+_.remove = function(elem){
+this.element.removeChild(elem.element)
+this.childCount = this.childCount.__sub__(new Number(1))
+return this;
+}
+_.remove.name = 'remove';
+_.removeAtPosition = function(positions){
+var positions=extractVarArgs(arguments,0,arguments.length);
+var r = []
+var lambda3 = positions
+for (lambda4 in lambda3){
+if(lambda3.hasOwnProperty(lambda4)){var pos = lambda3[lambda4];
+r.push(this.elementAt(pos))
+}
+}
+
+this.remove(new StarArgs(r))
+}
+_.removeAtPosition.name = 'removeAtPosition';
+_.removeAll = function(){
+for(i=this.element.childElementCount;i>0;i--){
+			this.element.removeChild(this.element.lastChild);
+		}
+}
+_.removeAll.name = 'removeAll';
+_.__len__ = function(){
+return this.element.childNodes.length;
+}
+_.__len__.name = '__len__';
+
+Composite_Container = function(){
+for(x in this.__proto__){
+				if(this.__proto__.hasOwnProperty(x)){
+					this.__proto__[x].__self__ = this
+				}
+			}	var __p = Composite_Container.prototype;
+	if(__p.hasOwnProperty("__init__")){
+		__p.__init__.apply(this, arguments);
+	}else{
+		while(__p.hasOwnProperty('__proto__')){
+			__p = __p.__proto__;
+			if(__p.hasOwnProperty("__init__")){
+				__p.__init__.apply(this, arguments);
+				return;			}		}	}};
+extend(Composite_Container, Composite_Composite);
+_=Composite_Container.prototype
+_.name = "Container";
+_.__init__ = function(){
+super(Composite_Container, this, '__init__').__init__(new String("div"))
+}
+_.__init__.name = '__init__';
+
+Composite_ListElement = function(){
+for(x in this.__proto__){
+				if(this.__proto__.hasOwnProperty(x)){
+					this.__proto__[x].__self__ = this
+				}
+			}	var __p = Composite_ListElement.prototype;
+	if(__p.hasOwnProperty("__init__")){
+		__p.__init__.apply(this, arguments);
+	}else{
+		while(__p.hasOwnProperty('__proto__')){
+			__p = __p.__proto__;
+			if(__p.hasOwnProperty("__init__")){
+				__p.__init__.apply(this, arguments);
+				return;			}		}	}};
+extend(Composite_ListElement, Composite_Composite);
+_=Composite_ListElement.prototype
+_.name = "ListElement";
+_.__init__ = function(){
+super(Composite_ListElement, this, '__init__').__init__(new String("li"))
+}
+_.__init__.name = '__init__';
+
+Composite_List = function(){
+for(x in this.__proto__){
+				if(this.__proto__.hasOwnProperty(x)){
+					this.__proto__[x].__self__ = this
+				}
+			}	var __p = Composite_List.prototype;
+	if(__p.hasOwnProperty("__init__")){
+		__p.__init__.apply(this, arguments);
+	}else{
+		while(__p.hasOwnProperty('__proto__')){
+			__p = __p.__proto__;
+			if(__p.hasOwnProperty("__init__")){
+				__p.__init__.apply(this, arguments);
+				return;			}		}	}};
+extend(Composite_List, Composite_Composite);
+_=Composite_List.prototype
+_.name = "List";
+_.__init__ = function(){
+super(Composite_List, this, '__init__').__init__(new String("ul"))
+}
+_.__init__.name = '__init__';
+_.addItem = function(content){
+var content=extractVarArgs(arguments,0,arguments.length);
+var e = new Composite_ListElement()
+e.add(new StarArgs(content))
+this.add(e)
+return this;
+}
+_.addItem.name = 'addItem';
+
+Composite_P = function(){
+for(x in this.__proto__){
+				if(this.__proto__.hasOwnProperty(x)){
+					this.__proto__[x].__self__ = this
+				}
+			}	var __p = Composite_P.prototype;
+	if(__p.hasOwnProperty("__init__")){
+		__p.__init__.apply(this, arguments);
+	}else{
+		while(__p.hasOwnProperty('__proto__')){
+			__p = __p.__proto__;
+			if(__p.hasOwnProperty("__init__")){
+				__p.__init__.apply(this, arguments);
+				return;			}		}	}};
+extend(Composite_P, UIElement_UIElement);
+_=Composite_P.prototype
+_.name = "P";
+_.__init__ = function(text,attrs){
+super(Composite_P, this, '__init__').__init__(new String("p"))
+this.element.textContent = text
+}
+_.__init__.name = '__init__';
+
+//** End Module: Composite.py **//
+
+//**** Module: native.py ****//
+
+native_Body = function(){
+for(x in this.__proto__){
+				if(this.__proto__.hasOwnProperty(x)){
+					this.__proto__[x].__self__ = this
+				}
+			}	var __p = native_Body.prototype;
+	if(__p.hasOwnProperty("__init__")){
+		__p.__init__.apply(this, arguments);
+	}else{
+		while(__p.hasOwnProperty('__proto__')){
+			__p = __p.__proto__;
+			if(__p.hasOwnProperty("__init__")){
+				__p.__init__.apply(this, arguments);
+				return;			}		}	}};
+extend(native_Body, Composite_Composite);
+_=native_Body.prototype
+_.name = "Body";
+_.__init__ = function(){
+this.element = document.documentElement.lastChild
+this.element.proxy = this
+this.alphaIndex = new String("a")
+this.childCount = new Number(0)
+}
+_.__init__.name = '__init__';
+
+native_LocalActor = function(){
+for(x in this.__proto__){
+				if(this.__proto__.hasOwnProperty(x)){
+					this.__proto__[x].__self__ = this
+				}
+			}	var __p = native_LocalActor.prototype;
+	if(__p.hasOwnProperty("__init__")){
+		__p.__init__.apply(this, arguments);
+	}else{
+		while(__p.hasOwnProperty('__proto__')){
+			__p = __p.__proto__;
+			if(__p.hasOwnProperty("__init__")){
+				__p.__init__.apply(this, arguments);
+				return;			}		}	}};
+extend(native_LocalActor, object);
+_=native_LocalActor.prototype
+_.name = "LocalActor";
+_.__init__ = function(arguments){
+if(this.birth){
+this.birth(arguments)
+} 
+}
+_.__init__.name = '__init__';
+
+native_failure_default = function(status,text){
+console.log(new String("Uncaught request failure code ").__add__(status).__str__()+"\n");
+
+}
+
+native_callback = function(call,success,failure){
+failure = typeof(failure) != 'undefined' ? failure : native_failure_default;
+		var sxhr = call[0];
+		var body = call[1];
+		var request = sxhr.request;
+		var handler = function(){
+			if(request.readyState==4){
+				if(request.status>=200 && request.status<300){
+					success.call(success.__self__, JSON.parse(request.responseText))
+				}else if(request.status>=400){
+					failure.call(failure.__self__, request.status, JSON.parse(request.responseText))
+				}
+			}
+		};
+		request.onreadystatechange = handler;
+		var bodystring = JSON.stringify(body);
+		console.log(bodystring)
+		sxhr.open().setHeader('Content-type','application/json').send(bodystring)
+}
+
+//** End Module: native.py **//
+
+//**** Module: Input.py ****//
+
+
+Input_Form = function(){
+for(x in this.__proto__){
+				if(this.__proto__.hasOwnProperty(x)){
+					this.__proto__[x].__self__ = this
+				}
+			}	var __p = Input_Form.prototype;
+	if(__p.hasOwnProperty("__init__")){
+		__p.__init__.apply(this, arguments);
+	}else{
+		while(__p.hasOwnProperty('__proto__')){
+			__p = __p.__proto__;
+			if(__p.hasOwnProperty("__init__")){
+				__p.__init__.apply(this, arguments);
+				return;			}		}	}};
+extend(Input_Form, Composite_Composite);
+_=Input_Form.prototype
+_.name = "Form";
+_.__init__ = function(method,action,elems,attrs){
+var elems=extractVarArgs(arguments,2,arguments.length-1);
+var attrs=arguments[arguments.length-1];
+super(Input_Form, this, '__init__').__init__(new String("form"), attrs)
+this.setAttribute(new String("method"), method)
+this.setAttribute(new String("action"), action)
+this.add(new StarArgs(elems))
+Input_submit_func = function(){
+return this.proxy.onsubmit();
+}
+
+this.element.onsubmit = Input_submit_func
+}
+_.__init__.name = '__init__';
+_.onSubmit = function(func){
+this.onsubmit = func
+return this;
+}
+_.onSubmit.name = 'onSubmit';
+
+Input_Label = function(){
+for(x in this.__proto__){
+				if(this.__proto__.hasOwnProperty(x)){
+					this.__proto__[x].__self__ = this
+				}
+			}	var __p = Input_Label.prototype;
+	if(__p.hasOwnProperty("__init__")){
+		__p.__init__.apply(this, arguments);
+	}else{
+		while(__p.hasOwnProperty('__proto__')){
+			__p = __p.__proto__;
+			if(__p.hasOwnProperty("__init__")){
+				__p.__init__.apply(this, arguments);
+				return;			}		}	}};
+extend(Input_Label, UIElement_UIElement);
+_=Input_Label.prototype
+_.name = "Label";
+_.__init__ = function(text){
+super(Input_Label, this, '__init__').__init__(new String("label"))
+this.element.textContent = text
+}
+_.__init__.name = '__init__';
+_.forInput = function(id){
+this.element.htmlFor = id
+return this;
+}
+_.forInput.name = 'forInput';
+_.setText = function(text){
+this.element.textContent = text
+}
+_.setText.name = 'setText';
+
+Input_Input = function(){
+for(x in this.__proto__){
+				if(this.__proto__.hasOwnProperty(x)){
+					this.__proto__[x].__self__ = this
+				}
+			}	var __p = Input_Input.prototype;
+	if(__p.hasOwnProperty("__init__")){
+		__p.__init__.apply(this, arguments);
+	}else{
+		while(__p.hasOwnProperty('__proto__')){
+			__p = __p.__proto__;
+			if(__p.hasOwnProperty("__init__")){
+				__p.__init__.apply(this, arguments);
+				return;			}		}	}};
+extend(Input_Input, UIElement_UIElement);
+_=Input_Input.prototype
+_.name = "Input";
+_.__init__ = function(attrs){
+super(Input_Input, this, '__init__').__init__(new String("input"), attrs)
+}
+_.__init__.name = '__init__';
+_.addLabelBefore = function(label){
+this.label = label.forInput(this.element.id)
+this.container.addBefore(label, this)
+return this;
+}
+_.addLabelBefore.name = 'addLabelBefore';
+_.addLabelAfter = function(label){
+this.label = label.forInput(this.element.id)
+this.container.addAfter(label, this)
+return this;
+}
+_.addLabelAfter.name = 'addLabelAfter';
+_.setLabelText = function(text){
+this.label.setText(text)
+}
+_.setLabelText.name = 'setLabelText';
+_.withPlaceholder = function(text){
+this.setAttribute(new String("placeholder"), text)
+return this;
+}
+_.withPlaceholder.name = 'withPlaceholder';
+_.getLabel = function(text){
+return this.label;
+}
+_.getLabel.name = 'getLabel';
+_.getValue = function(){
+return this.element.value;
+new Number(0)
+}
+_.getValue.name = 'getValue';
+_.setValue = function(newval){
+this.element.value = newval
+return this;
+}
+_.setValue.name = 'setValue';
+
+Input_TextBox = function(){
+for(x in this.__proto__){
+				if(this.__proto__.hasOwnProperty(x)){
+					this.__proto__[x].__self__ = this
+				}
+			}	var __p = Input_TextBox.prototype;
+	if(__p.hasOwnProperty("__init__")){
+		__p.__init__.apply(this, arguments);
+	}else{
+		while(__p.hasOwnProperty('__proto__')){
+			__p = __p.__proto__;
+			if(__p.hasOwnProperty("__init__")){
+				__p.__init__.apply(this, arguments);
+				return;			}		}	}};
+extend(Input_TextBox, Input_Input);
+_=Input_TextBox.prototype
+_.name = "TextBox";
+_.__init__ = function(){
+super(Input_TextBox, this, '__init__').__init__()
+this.element.type = new String("text")
+}
+_.__init__.name = '__init__';
+
+Input_PasswordBox = function(){
+for(x in this.__proto__){
+				if(this.__proto__.hasOwnProperty(x)){
+					this.__proto__[x].__self__ = this
+				}
+			}	var __p = Input_PasswordBox.prototype;
+	if(__p.hasOwnProperty("__init__")){
+		__p.__init__.apply(this, arguments);
+	}else{
+		while(__p.hasOwnProperty('__proto__')){
+			__p = __p.__proto__;
+			if(__p.hasOwnProperty("__init__")){
+				__p.__init__.apply(this, arguments);
+				return;			}		}	}};
+extend(Input_PasswordBox, Input_TextBox);
+_=Input_PasswordBox.prototype
+_.name = "PasswordBox";
+_.__init__ = function(){
+super(Input_PasswordBox, this, '__init__').__init__()
+this.element.type = new String("password")
+}
+_.__init__.name = '__init__';
+
+Input_Button = function(){
+for(x in this.__proto__){
+				if(this.__proto__.hasOwnProperty(x)){
+					this.__proto__[x].__self__ = this
+				}
+			}	var __p = Input_Button.prototype;
+	if(__p.hasOwnProperty("__init__")){
+		__p.__init__.apply(this, arguments);
+	}else{
+		while(__p.hasOwnProperty('__proto__')){
+			__p = __p.__proto__;
+			if(__p.hasOwnProperty("__init__")){
+				__p.__init__.apply(this, arguments);
+				return;			}		}	}};
+extend(Input_Button, Input_Input);
+_=Input_Button.prototype
+_.name = "Button";
+_.__init__ = function(text){
+super(Input_Button, this, '__init__').__init__()
+this.element.type = new String("button")
+this.element.value = text
+Input_click_func = function(){
+if(this.proxy.onclick){
+return this.proxy.onclick.call(this.proxy.onclick.__self__, this.proxy.onclick_args);
+} 
+}
+
+this.element.onclick = Input_click_func
+this.onclick_args = null
+this.onclick = null
+}
+_.__init__.name = '__init__';
+_.onClick = function(func,args){
+this.onclick_args = args
+this.onclick = func
+return this;
+}
+_.onClick.name = 'onClick';
+
+Input_SubmitButton = function(){
+for(x in this.__proto__){
+				if(this.__proto__.hasOwnProperty(x)){
+					this.__proto__[x].__self__ = this
+				}
+			}	var __p = Input_SubmitButton.prototype;
+	if(__p.hasOwnProperty("__init__")){
+		__p.__init__.apply(this, arguments);
+	}else{
+		while(__p.hasOwnProperty('__proto__')){
+			__p = __p.__proto__;
+			if(__p.hasOwnProperty("__init__")){
+				__p.__init__.apply(this, arguments);
+				return;			}		}	}};
+extend(Input_SubmitButton, Input_Button);
+_=Input_SubmitButton.prototype
+_.name = "SubmitButton";
+_.__init__ = function(text){
+super(Input_SubmitButton, this, '__init__').__init__(text)
+this.element.type = new String("submit")
+}
+_.__init__.name = '__init__';
+
+Input_TextArea = function(){
+for(x in this.__proto__){
+				if(this.__proto__.hasOwnProperty(x)){
+					this.__proto__[x].__self__ = this
+				}
+			}	var __p = Input_TextArea.prototype;
+	if(__p.hasOwnProperty("__init__")){
+		__p.__init__.apply(this, arguments);
+	}else{
+		while(__p.hasOwnProperty('__proto__')){
+			__p = __p.__proto__;
+			if(__p.hasOwnProperty("__init__")){
+				__p.__init__.apply(this, arguments);
+				return;			}		}	}};
+extend(Input_TextArea, Input_Input);
+_=Input_TextArea.prototype
+_.name = "TextArea";
+_.__init__ = function(text,attrs){
+this.element = new UIElement_UIElement(new String("textarea"), attrs).element
+this.element.proxy = this
+if(text){
+this.element.value = text
+} 
+}
+_.__init__.name = '__init__';
+
+//** End Module: Input.py **//
+
+//**** Module: view.py ****//
+
+
+
+view_ControllerActor = function(){
+for(x in this.__proto__){
+				if(this.__proto__.hasOwnProperty(x)){
+					this.__proto__[x].__self__ = this
+				}
+			}	var __p = view_ControllerActor.prototype;
+	if(__p.hasOwnProperty("__init__")){
+		__p.__init__.apply(this, arguments);
+	}else{
+		while(__p.hasOwnProperty('__proto__')){
+			__p = __p.__proto__;
+			if(__p.hasOwnProperty("__init__")){
+				__p.__init__.apply(this, arguments);
+				return;			}		}	}};
+extend(view_ControllerActor, native_LocalActor);
+_=view_ControllerActor.prototype
+_.name = "ControllerActor";
+_.birth = function(username){
+console.log(new String("Initialising RequestActor for ").__add__(username).__str__()+"\n");
+
+this.username = username
+this.timeline = new Timelines()
+this.followers = new Followers()
+this.statuses = new Statuses()
+this.users = new Users()
+}
+_.birth.name = 'birth';
+_.submit_status = function(status,success,failure){
+console.log(new String("Submitting new status").__str__()+"\n");
+
+native_callback(this.statuses.post(this.username, status), success, failure)
+}
+_.submit_status.name = 'submit_status';
+_.loadFollowers = function(layout){
+console.log(new String("Loading followers for ").__add__(this.username).__str__()+"\n");
+
+native_callback(this.followers.get_followers(this.username), layout)
+}
+_.loadFollowers.name = 'loadFollowers';
+_.loadFollowing = function(layout){
+console.log(new String("Loading followers for ").__add__(this.username).__str__()+"\n");
+
+native_callback(this.followers.get(this.username), layout)
+}
+_.loadFollowing.name = 'loadFollowing';
+_.loadUsers = function(layout){
+console.log(new String("Loading all users").__str__()+"\n");
+
+native_callback(this.users.get(), layout)
+}
+_.loadUsers.name = 'loadUsers';
+_.getTimeline = function(layout){
+console.log(new String("Getting timeline").__str__()+"\n");
+
+native_callback(this.timeline.get(this.username), layout)
+}
+_.getTimeline.name = 'getTimeline';
+_.getStatuses = function(layout){
+console.log(new String("Getting statuses").__str__()+"\n");
+
+native_callback(this.statuses.get(this.username), layout)
+}
+_.getStatuses.name = 'getStatuses';
+
+view_UserList = function(){
+for(x in this.__proto__){
+				if(this.__proto__.hasOwnProperty(x)){
+					this.__proto__[x].__self__ = this
+				}
+			}	var __p = view_UserList.prototype;
+	if(__p.hasOwnProperty("__init__")){
+		__p.__init__.apply(this, arguments);
+	}else{
+		while(__p.hasOwnProperty('__proto__')){
+			__p = __p.__proto__;
+			if(__p.hasOwnProperty("__init__")){
+				__p.__init__.apply(this, arguments);
+				return;			}		}	}};
+extend(view_UserList, Composite_List);
+_=view_UserList.prototype
+_.name = "UserList";
+_.__init__ = function(control){
+super(view_UserList, this, '__init__').__init__()
+this.controller = control
+var followers = new Input_Button(new String("Followers")).onClick(this.controller.loadFollowers, this.displayUsers)
+var following = new Input_Button(new String("Following")).onClick(this.controller.loadFollowing, this.displayUsers)
+var allusers = new Input_Button(new String("All")).onClick(this.controller.loadUsers, this.displayUsers)
+this.addItem(followers, following, allusers)
+}
+_.__init__.name = '__init__';
+_.displayUsers = function(fs){
+while(len(this).__gt__(new Number(1))){
+this.remove(this.lastElement())
+}
+
+var lambda1 = fs
+for (lambda2 in lambda1){
+if(lambda1.hasOwnProperty(lambda2)){var f = lambda1[lambda2];
+this.addItem(new Composite_P(f.name), new Composite_P(f.email))
+}
+}
+
+}
+_.displayUsers.name = 'displayUsers';
+
+view_StatusList = function(){
+for(x in this.__proto__){
+				if(this.__proto__.hasOwnProperty(x)){
+					this.__proto__[x].__self__ = this
+				}
+			}	var __p = view_StatusList.prototype;
+	if(__p.hasOwnProperty("__init__")){
+		__p.__init__.apply(this, arguments);
+	}else{
+		while(__p.hasOwnProperty('__proto__')){
+			__p = __p.__proto__;
+			if(__p.hasOwnProperty("__init__")){
+				__p.__init__.apply(this, arguments);
+				return;			}		}	}};
+extend(view_StatusList, Composite_List);
+_=view_StatusList.prototype
+_.name = "StatusList";
+_.__init__ = function(control){
+super(view_UserList, this, '__init__').__init__()
+this.controller = control
+var timeline = new Input_Button(new String("Timeline")).onClick(this.controller.getTimeline, this.displayStatuses)
+var statuses = new Input_Button(new String("Statuses")).onClick(this.controller.getStatuses, this.displayStatuses)
+this.addItem(timeline, statuses)
+}
+_.__init__.name = '__init__';
+_.displayStatuses = function(ss){
+while(len(this).__gt__(new Number(1))){
+this.remove(this.lastElement())
+}
+
+var lambda3 = ss
+for (lambda4 in lambda3){
+if(lambda3.hasOwnProperty(lambda4)){var s = lambda3[lambda4];
+this.addItem(new Composite_P(s.status), new Composite_P(s.timestamp))
+}
+}
+
+}
+_.displayStatuses.name = 'displayStatuses';
+
+view_StatusForm = function(){
+for(x in this.__proto__){
+				if(this.__proto__.hasOwnProperty(x)){
+					this.__proto__[x].__self__ = this
+				}
+			}	var __p = view_StatusForm.prototype;
+	if(__p.hasOwnProperty("__init__")){
+		__p.__init__.apply(this, arguments);
+	}else{
+		while(__p.hasOwnProperty('__proto__')){
+			__p = __p.__proto__;
+			if(__p.hasOwnProperty("__init__")){
+				__p.__init__.apply(this, arguments);
+				return;			}		}	}};
+extend(view_StatusForm, Input_Form);
+_=view_StatusForm.prototype
+_.name = "StatusForm";
+_.__init__ = function(control,statuslist){
+super(view_StatusForm, this, '__init__').__init__(new String("POST"), new String(""))
+this.controller = control
+this.statuslist = statuslist
+this.textarea = new Input_TextArea().setAttribute(new String("placeholder"), new String("What's up?"))
+this.submit = new Input_SubmitButton(new String("Honk!"))
+this.add(this.textarea, this.submit)
+this.onSubmit(this.submit_status)
+}
+_.__init__.name = '__init__';
+_.submit_status = function(){
+this.controller.submit_status(this.textarea.getValue(), this.sucessful, this.fail)
+return false;
+new Number(0)
+}
+_.submit_status.name = 'submit_status';
+_.sucessful = function(response){
+console.log(new String("Submission successful").__str__()+"\n");
+
+this.textarea.setValue(new String(""))
+}
+_.sucessful.name = 'sucessful';
+_.fail = function(status){
+console.log(new String("Submission failed").__str__()+"\n");
+
+}
+_.fail.name = 'fail';
+
+view_loadInterface = function(user_field){
+native_body.removeAll()
+var username = user_field.getValue()
+var controller = new view_ControllerActor(username)
+var statuses = new view_StatusList(controller).setAttribute(new String("style"), new String("border:1px solid red"))
+var users = new view_UserList(controller).setAttribute(new String("style"), new String("border:1px solid blue"))
+var statusform = new view_StatusForm(controller, statuses)
+native_body.add(statuses, statusform, users)
+}
+
+view_launch = function(){
+var user_field = new Input_TextBox().withPlaceholder(new String("Enter your username..."))
+var login_button = new Input_Button(new String("'Login'")).onClick(view_loadInterface, user_field)
+native_body.add(user_field, login_button)
+}
+
+//** End Module: view.py **//
+
+
+
+		//]]>
+		</script>
+	</head>
+	<body onload="init()"></body>
+</html>
