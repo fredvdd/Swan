@@ -2,8 +2,8 @@ from UIElement import UIElement
 
 class Composite(UIElement):
 	
-	def __init__(self):
-		super(Composite, self).__init__("div")
+	def __init__(self, elem, **attrs):
+		super(Composite, self).__init__(elem, **attrs)
 		self.alphaIndex = "a"
 		self.childCount = 0
 	
@@ -45,10 +45,9 @@ class Composite(UIElement):
 	def elementAt(self, position):
 		return native("this.element.childNodes.item(position).proxy")
 		
-	def remove(self, *elems):
-		for elem in elems:
-			native("this.element.removeChild(elem.element)")
-			self.childCount -= 1
+	def remove(self, elem):
+		native("this.element.removeChild(elem.element)")
+		self.childCount -= 1
 		return self
 
 	def removeAtPosition(self, *positions):
@@ -58,5 +57,37 @@ class Composite(UIElement):
 		self.remove(*r)
 		
 	def removeAll(self):
-		while self.childCount > 0:
-			self.remove(self.firstElement())
+		native("""for(i=this.element.childElementCount;i>0;i--){
+			this.element.removeChild(this.element.lastChild);
+		}""")
+		
+	def __len__():
+		return native("this.element.childNodes.length")
+
+class Container(Composite):
+	
+	def __init__(self):
+		super(Container, self).__init__("div")
+		
+
+class ListElement(Composite):
+
+	def __init__(self):
+		super(ListElement, self).__init__('li')
+
+class List(Composite):
+
+	def __init__(self):
+		super(List, self).__init__('ul')
+		
+	def addItem(self, *content):
+		e = ListElement()
+		e.add(*content)
+		self.add(e)
+		return self
+
+class P(UIElement):
+
+	def __init__(self, text, **attrs):
+		super(P,self).__init__('p')
+		self.element.textContent = text

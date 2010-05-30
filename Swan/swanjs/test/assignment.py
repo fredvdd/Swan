@@ -10,5 +10,7 @@
 # a.val+=n
 # v+=c
 
+d = None
+
 for x, y in asdf.iteritems():
 	print x, y

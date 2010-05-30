@@ -72,10 +72,11 @@ var id_counter = 21
 
 init = function(){
 	$bdy = document.documentElement.lastChild
-	native_body = new native_Body()
+	// native_body = new native_Body()
 	id_counter++
 	console.log("Initialised")
-	//%%modulename%%_launch()
+	//
+	varargs_launch()
 }
 
 StarArgs = function(in_arr){
@@ -212,6 +213,8 @@ String.prototype.__iadd__ = function(a){
 
 String.prototype.strip = function() { return this.replace(/^\s+|\s+$/, ''); };
 
+String.prototype.__str__ = function() { return this.valueOf(); }
+
 slice = function(start, end, step){
 	return new SliceObj(start,end,step)
 }
@@ -300,7 +303,11 @@ Array.prototype.__len__ = function(){
 	return this.length
 }
 Array.prototype.__str__ = function(){
-	return new String("[" + this.valueOf() + "]")
+	str = "["
+	for (x in this){
+		str += this[x].__str__()
+	}
+	return new String(str + "]")
 }
 Array.prototype.append = function(a){
 	this.push(a)
@@ -361,10 +368,47 @@ Dict.prototype.iteritems = function(){
 
 //%%handlers%%
 
-//%%compilation%%
+//
+//**** Module: varargs.py ****//
+varargs_varargs = function(arg1,arg2,vargs){
+var vargs=extractVarArgs(arguments,2,arguments.length);
+console.log(arg1.__str__());
+console.log(arg2.__str__());
+
+console.log(len(vargs).__str__()+"\n");
+
+var lambda1 = vargs
+for (lambda2 in lambda1){
+if(lambda1.hasOwnProperty(lambda2)){var x = lambda1[lambda2];
+console.log(x.__str__());
+
+}
+}
+
+
+}
+varargs_stdargs = function(arg1,arg2,arg3,arg4){
+	console.log(arguments)
+console.log(arg1.__str__()+"\n");
+console.log(arg2.__str__()+"\n");
+console.log(arg3.__str__()+"\n");
+console.log(arg4.__str__()+"\n");
+
+}
+varargs_launch = function(){
+varargs_varargs(new String("One"), new String("Two"), new String("Three"), new String("Four"))
+varargs_varargs(new String("Five"), new String("Six"), new Array(new String("Seven"),new String("Eight")))
+varargs_varargs(new String("Nine"), new String("Ten"), new StarArgs([new String("Eleven"),new String("Twelve")]))
+varargs_stdargs(new String("One"), new String("Two"), new StarArgs([new String("Three"),new String("Four")]))
+}
+
+//** End Module: varargs.py **//
+
+
 
 		//]]>
 		</script>
 	</head>
-	<body onload="init()"></body>
+	<body onload="init()">
+	</body>
 </html>

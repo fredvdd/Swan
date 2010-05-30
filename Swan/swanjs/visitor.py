@@ -186,14 +186,14 @@ class SwanVisitor(ASTVisitor):
 		self.transformFunction(node, classPrefix)
 		
 	def transformFunction(self, node, classFunc=None):
-		#print "Function %s, classFunc = %s, args %s, %s" % (node.name, classFunc, node.argnames, (1 if classFunc else 0)) 
+		# print "Function %s, classFunc = %s, args %s, %s" % (node.name, classFunc, node.argnames, (1 if classFunc else 0)) 
 		if hasattr(node, "name") and not classFunc:
 			self.out.write(self.module.replace(".", "_") + "_" + node.name + " = ")
 			self.functions.append(node.name)
 		elif hasattr(node, "name"):
 			print ("\t" if classFunc else "") + "\tFunction %s" % (node.name)
 			self.out.write(node.name + " = ")
-		self.out.write("function (")
+		self.out.write("function(")
 		node.argnames = node.argnames[1:] if classFunc else node.argnames
 		if node.argnames:
 			for name in node.argnames[:-1]:		
@@ -224,7 +224,9 @@ class SwanVisitor(ASTVisitor):
 		self.dispatch(node.code)
 		if not classFunc:
 		 	self.toplevel = True
-		self.out.write("}")
+		self.out.write("}\n")
+		if hasattr(node, "name") and classFunc:
+			self.out.write(classFunc + node.name + ".name = '" + node.name + "';")
 			
 	def visitReturn(self, node, *args):
 		self.out.write("return ")
@@ -236,11 +238,25 @@ class SwanVisitor(ASTVisitor):
 		print "\tClass %s" % node.name
 		className = self.module.replace(".", "_") + "_" + node.name
 		self.out.write(
-			'function ' + className + '(){\n'
-				'if('+className+'.prototype.hasOwnProperty("__init__")){\n'
-					+ className + '.prototype.__init__.apply(this, arguments);\n'
-				'}\n'
-			'}\n')
+			className + ' = function(){\n'
+			"""for(x in this.__proto__){
+				if(this.__proto__.hasOwnProperty(x)){
+					this.__proto__[x].__self__ = this
+				}
+			}"""
+			'\tvar __p = ' + className + '.prototype;\n'    
+			'\tif(__p.hasOwnProperty("__init__")){\n'
+			'\t\t__p.__init__.apply(this, arguments);\n'
+			'\t}else{\n'
+			"\t\twhile(__p.hasOwnProperty('__proto__')){\n"
+			'\t\t\t__p = __p.__proto__;\n'
+			'\t\t\tif(__p.hasOwnProperty("__init__")){\n'
+			'\t\t\t\t__p.__init__.apply(this, arguments);\n'
+			'\t\t\t\treturn;'
+			'\t\t\t}'
+			'\t\t}'
+			'\t}'
+			'};\n')
 		self.classes.append(node.name)
 		if node.bases:
 			self.out.write("extend(" + className + ", ")
@@ -362,6 +378,9 @@ class SwanVisitor(ASTVisitor):
 			self.dispatch(n)
 
 	def visitName(self, node, assName=None):
+		if node.name == 'None':
+			self.out.write('null')
+			return 
 		if node.name in ["True", "False"]:
 			self.out.write(node.name.lower())
 			return
