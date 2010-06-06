@@ -8,6 +8,9 @@ class IntegerField(Field):
 	fieldtype = 'integer'
 	pass
 	
+class RealField(Field):
+	fieldtype = 'real'
+	
 class TextField(Field):
 	fieldtype = 'varchar'
 	

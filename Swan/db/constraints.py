@@ -23,6 +23,11 @@ class GreaterThanConstraint(Constraint):
 
 	def compile(self):
 		return "> '%s'" % self.value
+		
+class LikeConstraint(Constraint):
+	
+	def compile(self):
+		return "like '%s'" % self.value
 
 def equals(value):
 	return EqualConstraint(value)
@@ -32,3 +37,6 @@ def less_than(value):
 
 def greater_than(value):
 	return GreaterThanConstraint(value)
+	
+def like(value):
+	return LikeConstraint(value)

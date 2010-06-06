@@ -7,8 +7,12 @@ import Swan
 
 def extract_models(modelpath):
 	print "Extracting models from " + modelpath
-	module = __import__(modelpath, globals(), locals(), [''])
 	models = {}
+	try:
+		module = __import__(modelpath, globals(), locals(), [''])
+	except ImportError:
+		"No models found at " + modelpath
+		return models
 	for x in dir(module):
 		 if isclass(module.__dict__[x]) and issubclass(module.__dict__[x], Model) and not x == 'Model':
 			models[x] = module.__dict__[x]													

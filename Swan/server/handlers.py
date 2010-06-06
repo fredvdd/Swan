@@ -80,4 +80,15 @@ class FileHandler(Handler):
 		else:
 			log.error(self, "couldn't find %s for %s" % (path, request.socket))
 			response.send_error(404, "Resource at %s could not be found" % path).send()
+	
+	# def post(self, body, path=None):
+	# 	filepath = self.root+path if path else self.root
 			
+			
+class ExternalHandler(Handler):
+
+	def birth(self, workers):
+		self.workers = workers
+		
+	def get_connection(self, server):
+		return one(self.workers).connect(server)
