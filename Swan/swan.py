@@ -2,7 +2,7 @@ from Actors.keywords import *
 from Actors.actorstate import ActorState
 from Actors.Device import file, db, http
 from Swan.server import *
-from Swan.db import init_db_models
+from Swan.db import init_db_models, Model
 from Swan.swanjs import *
 import sys, os.path
 from inspect import isclass
@@ -47,7 +47,7 @@ class Launcher(LocalActor):
 			if issubclass(cls, FileHandler):
 				handler_pools[name] = get_pool(cls, filepath + getattr(cls,'root'),file_workers)
 				all(registries).register(getattr(cls,'bindings')['default'],handler_pools[name])
-			if issubclass(cls, ExternalHandler):
+			elif issubclass(cls, ExternalHandler):
 				handler_pools[name] = get_pool(cls, http_workers)
 				for (s,p) in bindings.iteritems():
 					all(registries).register(p,handler_pools[name],(s if not s == 'default' else None))
@@ -73,7 +73,7 @@ def init_handlers(path):
 			if ev.__name__ in ['Handler','FileHandler','ExternalHandler']:
 				continue
 			handlers[ev.__name__] = (ev,getattr(ev,'bindings'))
-		elif isclass(ev) and issubclass(ev, ActorState) and not ek == 'MobileActor':
+		elif isclass(ev) and issubclass(ev, ActorState) and not (ek == 'MobileActor' or issubclass(ev, Model)):
 			handlers[ek] = (ev, None)
 	return handlers
 

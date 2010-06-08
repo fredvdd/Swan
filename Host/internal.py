@@ -92,7 +92,7 @@ class TheatreInternalInterface(object):
         if len(actor_ids) == 0:
           raise ActorsOfTypeNotFoundException(type)
         return ReferencePool(actor_ids)
-    threading.Timer(0, self.notify_types, (actor_ids, type)).start()
+    #threading.Timer(0, self.notify_types, (actor_ids, type)).start()
     return ReferencePool(actor_ids)
 
   def notify_types(self, already_using, type):
