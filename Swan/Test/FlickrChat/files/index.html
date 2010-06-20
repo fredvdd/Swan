@@ -1182,8 +1182,8 @@ this.onSubmit(this.submit_message)
 _.__init__.name = '__init__';
 _.submit_message = function(){
 var msg = this.textbox.getValue()
-if(msg.startswith(new String("photo "))){
-this.controller.submit_photo(msg.__getslice__(new Number(6)), this.successful, this.fail)
+if(msg.startswith(new String("#img"))){
+this.controller.submit_photo(msg.__getslice__(new Number(5)), this.successful, this.fail)
 }  else {
 this.controller.submit_message(msg, this.successful, this.fail)
 }

@@ -2,7 +2,7 @@ from Actors.keywords import *
 from Actors.actorstate import ActorState
 from Actors.Device import file, db, http
 from Swan.server import *
-from Swan.db import init_db_models, Model
+from Swan.db import init_db_models, Model, sync
 from Swan.swanjs import *
 import sys, os.path
 from inspect import isclass
@@ -52,7 +52,7 @@ class Launcher(LocalActor):
 				for (s,p) in bindings.iteritems():
 					all(registries).register(p,handler_pools[name],(s if not s == 'default' else None))
 			else:
-				handler_pools[name] = pool(reduce(lambda a, i: a + i, [get_pool(cls).actor_ids for i in range(0,8)]))
+				handler_pools[name] = pool(reduce(lambda a, i: a + i, [get_pool(cls).actor_ids for i in range(0,1)]))
 				for (s,p) in bindings.iteritems():
 					all(registries).register(p,handler_pools[name],(s if not s == 'default' else None))
 		# Test().start()
@@ -90,7 +90,7 @@ if __name__ == '__main__':
 		pass
 	
 	if runlevel & 4 == 4:#database sync
-		pass
+		sync.sync(path)
 	
 	if runlevel & 1 == 1:#compile
 		print "Compiling..."

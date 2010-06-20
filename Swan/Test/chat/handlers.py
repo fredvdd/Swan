@@ -1,10 +1,13 @@
-from Swan.server import Handler, FileHandler
+from Swan.server import Handler, FileHandler, ExternalHandler
 from Actors.keywords import NamedSingletonActor, find_type
+from models import *
 from time import time as time_now
+from json import loads
+from urllib import urlencode,unquote
 
 class RootHandler(FileHandler):
 	root = "/files/"
-	bindings = {"default":"/chat/`path`?"}
+	bindings = {"default":"/chat/?`path`?"}
 	
 class Messages(Handler):
 	bindings = { 'default':'/messages/`name`/?`time`?'}
@@ -13,11 +16,10 @@ class Messages(Handler):
 		self.hub = find_type('MessageHub')
 
 	def get(self, name, time=None):#retrieve messages
-		print time
 		self.hub.get_messages(response, time)
 
 	def post(self, name, body, time=None):#send a message
-		self.hub.put_message(time_now(),name,body)
+		self.hub.put_message({'time':time_now(),'name':name,'message':body,'type':'message'})
 		response.send(200)
 
 class MessageHub(NamedSingletonActor):
@@ -26,8 +28,7 @@ class MessageHub(NamedSingletonActor):
 		self.msgs = []
 		self.responses = []
 		
-	def put_message(self, time, name, message):
-		msg = {'time':time,'name':name,'message':message}
+	def put_message(self, msg):
 		self.msgs.insert(0,msg)
 		while self.responses:
 			response = self.responses.pop().send(200,[msg])
@@ -39,11 +40,18 @@ class MessageHub(NamedSingletonActor):
 		else:
 			self.responses.append(response)
 		
-		
-#GET /messages/Fred/ HTTP/1.1
-# 
-# POST /messages/Fred HTTP/1.1
-# Content-type : text/html
-# Content-length : 5
-# 
-# Hello
+class Photos(ExternalHandler):
+	bindings = {'photo':'/flickr/`user`/`title`'}
+	
+	def get_photo(self, user, title):
+		fluid = User.get(name=equals(user)).flickr_uid[0].uid
+		print "Looking for title " + title
+		params = {	'api_key':"745bf5cec0e4c9a5e9d225ce015b2e84",
+					'method':"flickr.people.getPublicPhotos",
+					'user_id':fluid,
+					'format':'json' }
+		resp = loads(self._get_request('api.flickr.com','/services/rest/?'+urlencode(params)).read()[14:-1])
+		photo = filter(lambda p:p['title']==unquote(title), resp['photos']['photo'])[0]
+		photo.update({'user':user,'type':'photo','time':time_now()})
+		find_type('MessageHub').put_message(photo)
+		response.send(200)

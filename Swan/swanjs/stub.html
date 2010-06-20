@@ -213,6 +213,11 @@ String.prototype.__iadd__ = function(a){
 
 String.prototype.strip = function() { return this.replace(/^\s+|\s+$/, ''); };
 
+String.prototype.startswith = function(substr) {return (this.match("^"+substr.valueOf())==substr.valueOf())}
+
+String.prototype.__getslice__ = String.prototype.substring
+
+
 slice = function(start, end, step){
 	return new SliceObj(start,end,step)
 }

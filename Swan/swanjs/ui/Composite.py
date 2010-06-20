@@ -37,10 +37,10 @@ class Composite(UIElement):
 			self.addBefore(newelement, refelement.nextElement())
 	
 	def firstElement(self):
-		return native("this.element.firstChild.proxy")
+		return native("this.element.firstElementChild.proxy")
 	
 	def lastElement(self):
-		return native("this.element.lastChild.proxy")
+		return native("this.element.lastElementChild.proxy")
 		
 	def elementAt(self, position):
 		return native("this.element.childNodes.item(position).proxy")
@@ -58,7 +58,7 @@ class Composite(UIElement):
 		
 	def removeAll(self):
 		native("""for(i=this.element.childElementCount;i>0;i--){
-			this.element.removeChild(this.element.lastChild);
+			this.element.removeChild(this.element.lastElementChild);
 		}""")
 		
 	def __len__():

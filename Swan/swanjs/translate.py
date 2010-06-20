@@ -145,8 +145,9 @@ def add_handlers(view_js, handlerpath):
 	for hn in dir(handlermod):
 		hc = getattr(handlermod, hn)
 		if inspect.isclass(hc) and issubclass(hc, Handler):
-			if hc.__name__ == 'Handler' or hc.__name__ == 'FileHandler':
+			if hc.__name__ in ['Handler','FileHandler','ExternalHandler']:
 				continue
+			print "Creating proxy for handler " + hc.__name__
 			extra += hc.__name__ + " = function(){}\n"
 			extra += "_ = " + hc.__name__ + ".prototype;\n"
 			

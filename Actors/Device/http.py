@@ -25,7 +25,7 @@ class HTTP(MobileActor):
 	def _request(self, method, server, path, body=None, **headers):
 		conn = HTTPConnection(server, 80)
 		conn.request(method, path,body,headers)
-		return StageHTTPResponse(conn.getresponse)
+		return StageHTTPResponse(conn.getresponse())
 
 
 class HTTPReference(object):

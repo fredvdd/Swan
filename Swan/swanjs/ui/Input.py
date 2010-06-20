@@ -9,7 +9,8 @@ class Form(Composite):
 		self.setAttribute('action', action)
 		self.add(*elems)
 		def submit_func():
-			return self.proxy.onsubmit()
+			self.proxy.onsubmit()
+			return False
 		self.element.onsubmit = submit_func
 	
 	def onSubmit(self, func):

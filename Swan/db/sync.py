@@ -1,6 +1,6 @@
 import sys, sqlite3 as sql
-from Swan.fields import Field, IntegerField
-from Swan.static import extract_models
+from Swan.db.fields import Field, IntegerField
+from Swan.db.static import extract_models
 
 def get_sql(table_definitions):
 	creates = []
