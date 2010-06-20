@@ -2,19 +2,24 @@ from Actors.keywords import *
 from BaseHTTPServer import BaseHTTPRequestHandler
 from time import time, gmtime
 from json import JSONEncoder, dumps, loads
+from urlparse import parse_qs
+from Swan.static import parse_accept
 from coding import encoders, decoders, PassThroughEncoder, PassThroughDecoder
 
 class Request(object):
 	
-	def __init__(self, parent, socket, rfile, wfile, method, path, headers, params):
+	def __init__(self, parent, socket, rfile, wfile, method, path, headers, params, path_params, query, frag):
 		self.parent = parent
 		self.socket = socket
-		self.wfile = wfile
+		self.wfile = wfile if wfile else socket.makefile('wb',0)
 		self.rfile = rfile
 		self.method = method
 		self.path = path
 		self.headers = headers
 		self.params = params
+		self.path_params = path_params
+		self.query = parse_qs(query)
+		self.fragment = frag
 		self.body = None
 		
 	def __str__(self):
@@ -32,7 +37,7 @@ class Request(object):
 	def get_body(self):
 		if self.body:
 			return self.body
-		length = self.headers['Content-length']
+		length = self.headers['Content-Length']
 		self.body = self.decode(self.headers['Content-type'], self.rfile.read(int(length)))
 		return self.body
 		
@@ -46,29 +51,31 @@ class Response(object):
 		self.partner = partner
 		self.wfile = wfile
 		self.headers = dict()
-		self.code=None
+		self.code=200
 		self.name=None
 		self.content=None
+		self.content_type=None
 
 	def send(self, status_code=None, content=None, content_type=None):
 		if status_code:
 			self.with_status(status_code)
-		if content and content_type:
-			self.with_content(content, content_type)
-			
+		if not self.content:
+			self.with_content(content if content else self.content, content_type)
+		self.headers["Content-Length"] = len(self.content)
 		self.wfile.write("HTTP/1.1 %s %s\n" % (self.code, self.name))
 		for k,v in self.headers.iteritems():
 			self.wfile.write("%s:%s\n" % (k,v))
-		self.wfile.write(("\r\n%s" % self.content) if self.content else "")
+		self.wfile.write("\r\n%s" % self.content)
 		self.wfile.flush()
 		self.partner.try_repeat()
 		
 	def with_content(self, content, content_type=None):
 		if content_type:
 			self.with_content_type(content_type)
+		elif not self.content_type:
+			self.content_type = parse_accept(self.partner.headers['Accept'])[0]
 		content_str=self.encode(self.content_type, content)
 		self.content = content_str
-		self.headers["Content-length"] = len(content_str)
 		# self.wfile.write("%s:%s\n" % ("Content-length", len(content_str)))
 		# self.wfile.write("\r\n")
 		# self.wfile.write(content_str)
@@ -145,7 +152,7 @@ class ErrorResponse(Response):
 		self.wfile.write("HTTP/1.1 %s %s\n" % (code, name))
 		self.date_header()
 		self.with_headers(**{
-			"Content-type": "text/html",
+			"Content-Type": "text/html",
 			"Connection": "close",
 			"Content-Length": len(self.content)
 		})

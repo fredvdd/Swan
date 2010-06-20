@@ -31,7 +31,10 @@ class SwanJSONEncoder(SwanEncoder, JSONEncoder):
 		JSONEncoder.__init__(self, *args, **kwds)
 		
 	def get_encoding(self, content):
-		return self.encode(content)
+		if content:
+			return self.encode(content)
+		else:
+			return "{}"
 	
 	def encodeModel(self, model, depth):
 		fields = getattr(model.__class__, '__fields')
@@ -74,10 +77,10 @@ class PassThroughDecoder(SwanDecoder):
 class SwanJSONDecoder(object):
 	
 	def get_decoding(self,encoded):
-		print encoded
-		print type(encoded)
+		# print encoded
+		# print type(encoded)
 		content = loads(encoded)
-		print type(content)
+		# print type(content)
 		if isinstance(content, UnicodeType):
 			return str(content)
 		elif isinstance(content, DictType):

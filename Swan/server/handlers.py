@@ -91,4 +91,16 @@ class ExternalHandler(Handler):
 		self.workers = workers
 		
 	def get_connection(self, server):
-		return one(self.workers).connect(server)
+		return one(self.workers)._connect(server)
+		
+	def get_request(self, server, url, body=None, **headers):
+		return one(self.workers)._request('GET',server,url,body,headers)
+		
+	def put_request(self, server, url, body=None, **headers):
+		return one(self.workers)._request('PUT',server,url,body,headers)
+		
+	def post_request(self, server, url, body=None, **headers):
+		return one(self.workers)._request('POST',server,url,body,headers)
+		
+	def delete_request(self, server, url, body=None, **headers):
+		return one(self.workers)._request('DELETE',server,url,body,headers)

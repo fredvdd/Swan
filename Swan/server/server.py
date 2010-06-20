@@ -3,6 +3,7 @@ from request import Request
 from Swan.static import log
 from itertools import cycle
 from threading import Timer
+from urlparse import urlparse
 
 class Server(LocalActor):
 	"""Root actor with accepting socket, simply accepts 
@@ -11,7 +12,7 @@ connections and passes them on"""
 		log.debug(self, "SWAN Server starting...")
 		self.resources = resources #resource dictionary pool
 		self.handlers = []
-		self.add_handler(8)
+		self.add_handler(100)
 		self.sock = open_socket(port)
 		self.accept()
 		
@@ -41,34 +42,49 @@ class RequestHandler(LocalActor):
 	def handle(self, sock):
 		log.debug(self, "Conection from %s:%d" % sock.getpeername())
 		rfile = sock.makefile('rb',-1)
-		wfile = sock.makefile('wb',0)
-		self.handle_request(sock, rfile, wfile)
+		self.handle_request(sock, rfile)
 	
-	def handle_request(self, sock, rfile, wfile):
+	def handle_request(self, sock, rfile, wfile=None):
 		#log.debug(self, "Handling connection from %s:%d" % sock.getpeername())
-		sock.settimeout(2.0)
-		raw_requestline = rfile.readline()
-		sock.settimeout(None) #disable timeouts
-		if not raw_requestline:
-			log.debug(self, "No Request. Closing connection to %s:%d" % sock.getpeername())
-			wfile.flush()
-			sock.close()
-			log.debug(self, "\n****************\n\n****************")
-			return
+		try:
+			sock.settimeout(2.0)
+			raw_requestline = rfile.readline()
+			sock.settimeout(None) #disable timeouts
+			if not raw_requestline:
+				log.debug(self, "No Request. Closing connection to %s:%d" % sock.getpeername())
+				sock.close()
+				log.debug(self, "\n****************\n\n****************")
+				return
 		
-		#got command, path, and request_version and headers
-		command, path, http = raw_requestline.strip().split(' ')
+			request = raw_requestline.strip()
+			log.debug(self, "Request: " + request)
 		
-		headers = {}
-		headerline = rfile.readline()
-		while not headerline.strip() == "":
-			key, value = headerline.split(":",1)
-			headers[key.strip()] = value.strip()
+			#get command, path, and request_version and headers
+			command, request_path, http = raw_requestline.strip().split(' ')
+			scheme, netloc, path, path_params, query, frag = urlparse(request_path)
+		
+			headers = {}
 			headerline = rfile.readline()
+			while not headerline.strip() == "":
+				key, value = headerline.split(":",1)
+				# print key," : ",value
+				headers[key.strip()] = value.strip()
+				headerline = rfile.readline()
 
-		(responder_pool, specifier, params) = one(self.registries).lookup(path)
-		#log.debug(self,"Responders: %s,\n Specifier: %s,\n Params: %s\n" % (responder_pool, specifier, params))
-		request = Request(self, sock, rfile, wfile, command, path,  headers, params)
-		handler = one(responder_pool)
-		log.debug(self, "%s to %s" % (str(request), handler))
-		handler.respond(request, specifier)
+			(responder_pool, specifier, params) = one(self.registries).lookup(path)
+			#log.debug(self,"Responders: %s,\n Specifier: %s,\n Params: %s\n" % (responder_pool, specifier, params))
+			request = Request(self, sock, rfile, wfile, command, path, headers, params, path_params, query, frag)
+			handler = one(responder_pool)
+			log.debug(self, "%s to %s" % (str(request), handler))
+			handler.respond(request, specifier)
+		except Exception as exc:
+			log.warn(self, str(exc))
+			
+
+class Headers(dict):
+		
+	def __getitem__(self,key):
+		dict.__getitem__(self, key.lower())
+		
+	def __setitem__(self,key,value):
+		dict.__setitem__(self,key.lower(),value)

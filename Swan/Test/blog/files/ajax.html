@@ -1,0 +1,144 @@
+<!DOCTYPE HTML>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+
+	<title>Ajax Test Page</title>
+	<link rel="stylesheet" href="styles.css" type="text/css" media="screen" title="no title" charset="utf-8" />
+<script type="text/javascript"> 
+
+function swanjsRequest(method, path, onsuccess, onfailure){
+	this.method = method;
+	this.path = path;
+	request = new XMLHttpRequest();
+	request.onreadystatechange=function(){
+		if(request.readyState==4){
+			if(request.status>=200 && request.status<300){
+				onsuccess(request.responseText, request.responseXML)
+			}else if(request.status>=400){
+				onfailure(request.status, request.responseText, request.responseXML)
+			}
+		}
+	}
+	this.request = request
+	this.request.open(this.method, this.path, true)
+}
+
+swanjsRequest.prototype.setHeader = function(key,value){
+	this.request.setRequestHeader(key, value)
+	return this
+}
+swanjsRequest.prototype.send = function(body){
+	this.request.send(body)
+	return this
+}
+
+function name(){
+	return document.getElementById('username').value;
+}
+ 
+function loadStatuses(){
+	new swanjsRequest('get', "/"+name()+"/statuses/", status_load).send()
+}
+
+function status_load(text, xml)
+{
+	console.log(text)
+	statuses = eval("(" + text + ")");
+	console.log(statuses.length)
+	val = "";
+	for(x in statuses){
+		stat = statuses[x]
+		val += '<li data-id="'+stat.id+'">At ' + stat.timestamp + ": " + stat.status + '. <span onclick="deletestatus(this.parentNode)">X</span></li>'
+	}
+	document.getElementById('statuses').innerHTML = val; //xmlhttp.responseText;
+}
+ 
+function status_post(e) {
+	statustext = document.getElementById('statusinput').value
+	new swanjsRequest('post', "/" + name() + "/statuses/", function(text){
+			console.log(text)
+	}, function(status,text){
+			console.log(status)
+	}).setHeader("Content-type", "application/json").send(JSON.stringify({'status':statustext,'user':name()}));
+	return false;
+}
+
+function deletestatus(status){
+	console.log("Deleting " + status.attributes.getNamedItem('data-id').value + ", " + status)
+	status_id = status.attributes.getNamedItem('data-id').value
+	new swanjsRequest('delete', "/" + name() + "/status/" + status_id, function(text){
+		status.parentNode.removeChild(status)
+	}).send()
+}
+
+function loadTimeline(){
+	new swanjsRequest('get', '/'+name()+"/timeline/",status_load).send()
+}
+
+function loadFollowing(){
+	new swanjsRequest('get', "/"+name()+'/following', function(text){
+		console.log(text)
+		followed_users = eval("("+text+")")
+		val = ""
+		for(x in followed_users){
+			fu = followed_users[x]
+			val += '<li data-id="'+fu.id+'">'+fu.name+'</li>'
+		}
+		document.getElementById('users').innerHTML = val
+	}).send()
+}
+
+function loadFollowers(){
+	new swanjsRequest('get', "/"+name()+'/followers', function(text){
+		console.log(text)
+		users = eval("("+text+")")
+		val = ""
+		for(x in users){
+			fu = users[x];
+			val += '<li data-id="'+fu.id+'">'+fu.name+'</li>'
+		}
+		document.getElementById('users').innerHTML = val;
+	}, function(status, text){
+		console.log(status)
+	}).send()
+}
+
+function loadUsers(){
+	new swanjsRequest('get', '/users/', function(text){
+		console.log(text)
+		users = eval("("+text+")")
+		val = ""
+		for(x in users){
+			fu = users[x];
+			val += '<li data-id="'+fu.id+'">'+fu.name+'</li>'
+		}
+		document.getElementById('users').innerHTML = val;
+	}, function(status, text){
+		console.log(status)
+	}).send()
+}
+
+</script> 
+</head> 
+ 
+<body> 
+	<label for="username">Username:</label><input type="text" placeholder="Enter your username..." name="username" value="" id="username">
+	<button onclick="loadStatuses();">Statuses</button>
+	<button onclick="loadTimeline();">Timeline</button>
+	<button onclick="loadFollowing();">Following</button>
+	<button onclick="loadFollowers();">Followers</button>
+	<button onclick="loadUsers();">All Users</button>
+	<ul id="statuses"></ul><br />
+	<ul id="users" style="border:1px solid black" ></ul><br />
+
+<form action="" method="post" accept-charset="utf-8" onsubmit="return(status_post())">
+	<p><label for="statusinput">Status:</label><textarea placeholder="What are you thinking?" name="status" id="statusinput"></textarea></p>
+	
+	<p><input type="submit" value="Honk"/></p>
+</form>
+
+
+</body> 
+ 
+</html>

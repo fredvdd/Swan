@@ -383,55 +383,21 @@ function swanjsRequest(method, path){
 	}
 
 
-	Followers = function(){}
-_ = Followers.prototype;
-_.delete_follower = function(name,follower){
-	return [new swanjsRequest('delete', '/'+name+'/follower/'+follower+''), null]
+	Messages = function(){}
+_ = Messages.prototype;
+_.get = function(name,time){
+	time = typeof(time) != 'undefined' ? time : '';
+	return [new swanjsRequest('get', '/messages/'+name+'/'+time+''), null]
 };
-_.get = function(name){
-	return [new swanjsRequest('get', '/'+name+'/following'), null]
-};
-_.get_followers = function(name){
-	return [new swanjsRequest('get', '/'+name+'/followers'), null]
-};
-_.post = function(name){
-	return [new swanjsRequest('post', '/'+name+'/following'), body]
+_.post = function(name,body,time){
+	time = typeof(time) != 'undefined' ? time : '';
+	return [new swanjsRequest('post', '/messages/'+name+'/'+time+''), body]
 };
 RootHandler = function(){}
 _ = RootHandler.prototype;
 _.get = function(path){
 	path = typeof(path) != 'undefined' ? path : '';
-	return [new swanjsRequest('get', '/honker/`path`'), null]
-};
-Statuses = function(){}
-_ = Statuses.prototype;
-_.delete_status = function(name,id){
-	id = typeof(id) != 'undefined' ? id : '';
-	return [new swanjsRequest('delete', '/'+name+'/status/`id`'), null]
-};
-_.get = function(name,count){
-	count = typeof(count) != 'undefined' ? count : '';
-	return [new swanjsRequest('get', '/'+name+'/statuses/'+count+''), null]
-};
-_.post = function(name,body,count){
-	count = typeof(count) != 'undefined' ? count : '';
-	return [new swanjsRequest('post', '/'+name+'/statuses/'+count+''), body]
-};
-Timelines = function(){}
-_ = Timelines.prototype;
-_.get = function(name){
-	return [new swanjsRequest('get', '/'+name+'/timeline'), null]
-};
-Users = function(){}
-_ = Users.prototype;
-_.get = function(){
-	return [new swanjsRequest('get', '/users'), null]
-};
-_.get_user = function(name){
-	return [new swanjsRequest('get', '/user/'+name+''), null]
-};
-_.post = function(){
-	return [new swanjsRequest('post', '/users'), body]
+	return [new swanjsRequest('get', '/chat/`path`'), null]
 };
 
 
@@ -798,7 +764,27 @@ failure = typeof(failure) != 'undefined' ? failure : native_failure_default;
 			}
 		};
 		request.onreadystatechange = handler;
-		sxhr.open().setHeader('Content-type','application/json').send(JSON.stringify(body))
+		sxhr.open().setHeader('Accept','application/json').setHeader('Content-type','application/json').send(JSON.stringify(body))
+}
+
+native_bind = function(call,success,failure){
+failure = typeof(failure) != 'undefined' ? failure : native_failure_default;
+		var sxhr = call[0];
+		var body = call[1];
+		var request = sxhr.request;
+		var handler = function(){
+			if(request.readyState==4){
+				if(request.status>=200 && request.status<300){
+					console.log(request.status, request.getAllResponseHeaders())
+					success.call(success.__self__, JSON.parse(request.responseText))
+					bind(call, success, failure)
+				}else if(request.status>=400){
+					failure.call(failure.__self__, request.status, JSON.parse(request.responseText))
+				}
+			}
+		};
+		request.onreadystatechange = handler;
+		sxhr.open().setHeader('Accept','application/json').setHeader('Content-type','application/json').send(JSON.stringify(body))
 }
 
 //** End Module: native.py **//
@@ -1093,55 +1079,33 @@ _.birth = function(username){
 console.log(new String("Initialising RequestActor for ").__add__(username).__str__()+"\n");
 
 this.username = username
-this.timeline = new Timelines()
-this.followers = new Followers()
-this.statuses = new Statuses()
-this.users = new Users()
+this.messages = new Messages()
+this.time = null
 }
 _.birth.name = 'birth';
-_.submit_status = function(status,success,failure){
-console.log(new String("Submitting new status").__str__()+"\n");
+_.submit_message = function(message,success){
+console.log(new String("Submitting new message").__str__()+"\n");
 
-native_callback(this.statuses.post(this.username, status), success, failure)
+native_callback(this.messages.post(this.username, message), success)
 }
-_.submit_status.name = 'submit_status';
-_.loadFollowers = function(layout){
-console.log(new String("Loading followers for ").__add__(this.username).__str__()+"\n");
+_.submit_message.name = 'submit_message';
+_.get_messages = function(layout){
+console.log(new String("Getting messages for ").__add__(this.username).__str__()+"\n");
 
-native_callback(this.followers.get_followers(this.username), layout)
+native_callback(this.messages.get(this.username, this.get_time()), layout)
 }
-_.loadFollowers.name = 'loadFollowers';
-_.loadFollowing = function(layout){
-console.log(new String("Loading followers for ").__add__(this.username).__str__()+"\n");
-
-native_callback(this.followers.get(this.username), layout)
+_.get_messages.name = 'get_messages';
+_.get_time = function(){
+return new Date().getTime();
 }
-_.loadFollowing.name = 'loadFollowing';
-_.loadUsers = function(layout){
-console.log(new String("Loading all users").__str__()+"\n");
+_.get_time.name = 'get_time';
 
-native_callback(this.users.get(), layout)
-}
-_.loadUsers.name = 'loadUsers';
-_.getTimeline = function(layout){
-console.log(new String("Getting timeline for ").__add__(this.username).__str__()+"\n");
-
-native_callback(this.timeline.get(this.username), layout)
-}
-_.getTimeline.name = 'getTimeline';
-_.getStatuses = function(layout){
-console.log(new String("Getting statuses for ").__add__(this.username).__str__()+"\n");
-
-native_callback(this.statuses.get(this.username), layout)
-}
-_.getStatuses.name = 'getStatuses';
-
-view_UserList = function(){
+view_MessageList = function(){
 for(x in this.__proto__){
 				if(this.__proto__.hasOwnProperty(x)){
 					this.__proto__[x].__self__ = this
 				}
-			}	var __p = view_UserList.prototype;
+			}	var __p = view_MessageList.prototype;
 	if(__p.hasOwnProperty("__init__")){
 		__p.__init__.apply(this, arguments);
 	}else{
@@ -1150,81 +1114,35 @@ for(x in this.__proto__){
 			if(__p.hasOwnProperty("__init__")){
 				__p.__init__.apply(this, arguments);
 				return;			}		}	}};
-extend(view_UserList, Composite_List);
-_=view_UserList.prototype
-_.name = "UserList";
+extend(view_MessageList, Composite_List);
+_=view_MessageList.prototype
+_.name = "MessageList";
 _.__init__ = function(control){
-super(view_UserList, this, '__init__').__init__()
-this.setAttribute(new String("id"), new String("ul"))
-this.controller = control
-var followers = new Input_Button(new String("Followers")).onClick(this.controller.loadFollowers, this.displayUsers)
-var following = new Input_Button(new String("Following")).onClick(this.controller.loadFollowing, this.displayUsers)
-var allusers = new Input_Button(new String("All")).onClick(this.controller.loadUsers, this.displayUsers)
-this.addItem(followers, following, allusers)
-}
-_.__init__.name = '__init__';
-_.displayUsers = function(fs){
-while(len(this).__gt__(new Number(1))){
-this.remove(this.lastElement())
-}
-
-var lambda1 = fs
-for (lambda2 in lambda1){
-if(lambda1.hasOwnProperty(lambda2)){var f = lambda1[lambda2];
-this.addItem(new Composite_P(f.name), new Composite_P(f.email))
-}
-}
-
-}
-_.displayUsers.name = 'displayUsers';
-
-view_StatusList = function(){
-for(x in this.__proto__){
-				if(this.__proto__.hasOwnProperty(x)){
-					this.__proto__[x].__self__ = this
-				}
-			}	var __p = view_StatusList.prototype;
-	if(__p.hasOwnProperty("__init__")){
-		__p.__init__.apply(this, arguments);
-	}else{
-		while(__p.hasOwnProperty('__proto__')){
-			__p = __p.__proto__;
-			if(__p.hasOwnProperty("__init__")){
-				__p.__init__.apply(this, arguments);
-				return;			}		}	}};
-extend(view_StatusList, Composite_List);
-_=view_StatusList.prototype
-_.name = "StatusList";
-_.__init__ = function(control){
-super(view_UserList, this, '__init__').__init__()
+super(view_MessageList, this, '__init__').__init__()
 this.setAttribute(new String("id"), new String("sl"))
 this.controller = control
-var timeline = new Input_Button(new String("Timeline")).onClick(this.controller.getTimeline, this.displayStatuses)
-var statuses = new Input_Button(new String("Statuses")).onClick(this.controller.getStatuses, this.displayStatuses)
-this.addItem(timeline, statuses)
 }
 _.__init__.name = '__init__';
-_.displayStatuses = function(ss){
-while(len(this).__gt__(new Number(1))){
-this.remove(this.lastElement())
-}
+_.display_messages = function(msgs){
+console.log(new String("Got messages ").__add__(str(msgs)).__str__()+"\n");
 
-var lambda3 = ss
-for (lambda4 in lambda3){
-if(lambda3.hasOwnProperty(lambda4)){var s = lambda3[lambda4];
-this.addItem(new Composite_P(s.user_id.name), new Composite_P(s.status), new Composite_P(s.timestamp))
+var lambda1 = msgs
+for (lambda2 in lambda1){
+if(lambda1.hasOwnProperty(lambda2)){var msg = lambda1[lambda2];
+this.addItem(new Composite_P(msg.name), new Composite_P(msg.message))
 }
 }
 
+this.controller.get_messages(this.display_messages)
 }
-_.displayStatuses.name = 'displayStatuses';
+_.display_messages.name = 'display_messages';
 
-view_StatusForm = function(){
+view_MessageForm = function(){
 for(x in this.__proto__){
 				if(this.__proto__.hasOwnProperty(x)){
 					this.__proto__[x].__self__ = this
 				}
-			}	var __p = view_StatusForm.prototype;
+			}	var __p = view_MessageForm.prototype;
 	if(__p.hasOwnProperty("__init__")){
 		__p.__init__.apply(this, arguments);
 	}else{
@@ -1233,30 +1151,29 @@ for(x in this.__proto__){
 			if(__p.hasOwnProperty("__init__")){
 				__p.__init__.apply(this, arguments);
 				return;			}		}	}};
-extend(view_StatusForm, Input_Form);
-_=view_StatusForm.prototype
-_.name = "StatusForm";
-_.__init__ = function(control,statuslist){
-super(view_StatusForm, this, '__init__').__init__(new String("POST"), new String(""))
+extend(view_MessageForm, Input_Form);
+_=view_MessageForm.prototype
+_.name = "MessageForm";
+_.__init__ = function(control,messagelist){
+super(view_MessageForm, this, '__init__').__init__(new String("POST"), new String(""))
 this.setAttribute(new String("id"), new String("sf"))
 this.controller = control
-this.statuslist = statuslist
-this.textarea = new Input_TextArea().setAttribute(new String("placeholder"), new String("What's up?"))
-this.submit = new Input_SubmitButton(new String("Honk!"))
-this.add(this.textarea, this.submit)
-this.onSubmit(this.submit_status)
+this.messagelist = messagelist
+this.textbox = new Input_TextBox().setAttribute(new String("placeholder"), new String("What's up?"))
+this.add(this.textbox)
+this.onSubmit(this.submit_message)
 }
 _.__init__.name = '__init__';
-_.submit_status = function(){
-this.controller.submit_status(this.textarea.getValue(), this.sucessful, this.fail)
+_.submit_message = function(){
+this.controller.submit_message(this.textbox.getValue(), this.sucessful, this.fail)
 return false;
 new Number(0)
 }
-_.submit_status.name = 'submit_status';
+_.submit_message.name = 'submit_message';
 _.sucessful = function(response){
 console.log(new String("Submission successful").__str__()+"\n");
 
-this.textarea.setValue(new String(""))
+this.textbox.setValue(new String(""))
 }
 _.sucessful.name = 'sucessful';
 _.fail = function(status){
@@ -1272,18 +1189,17 @@ login_box.remove(login_box.lastElement())
 }
 
 var controller = new view_ControllerActor(username)
-var statuses = new view_StatusList(controller)
-var users = new view_UserList(controller)
-var statusform = new view_StatusForm(controller, statuses)
-native_body.add(statusform, statuses, users)
-controller.getTimeline(statuses.displayStatuses)
+var messages = new view_MessageList(controller)
+var messageform = new view_MessageForm(controller, messages)
+native_body.add(messages, messageform)
+controller.get_messages(messages.display_messages)
 }
 
 view_launch = function(){
 var login_box = new Composite_Container().setAttribute(new String("id"), new String("lb"))
 var user_field = new Input_TextBox().withPlaceholder(new String("Enter your username..."))
 var login_button = new Input_Button(new String("'Login'")).onClick(view_loadInterface, login_box)
-native_body.add(login_box.add(new Composite_P(new String("Honker")), user_field, login_button))
+native_body.add(login_box.add(new Composite_P(new String("Chatter")), user_field, login_button))
 }
 
 //** End Module: view.py **//

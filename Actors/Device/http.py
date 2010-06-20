@@ -7,7 +7,7 @@ class HTTP(MobileActor):
 		self.connections = dict()
 		self.ids = 0
 	
-	def connect(self, server, port=80):
+	def _connect(self, server, port=80):
 		conn = HTTPConnection(server, port)
 		self.ids += 1
 		self.connections[self.ids] = conn
@@ -21,6 +21,11 @@ class HTTP(MobileActor):
 		if isinstance(result, HTTPResponse):
 			result = StageHTTPResponse(result)
 		return result
+		
+	def _request(self, method, server, path, body=None, **headers):
+		conn = HTTPConnection(server, 80)
+		conn.request(method, path,body,headers)
+		return StageHTTPResponse(conn.getresponse)
 
 
 class HTTPReference(object):
@@ -44,21 +49,36 @@ class HTTPReference(object):
 	def __getattr__(self, name):
 		if self.__dict__.has_key(name):
 			return self.__dict__[name]
-		return HTTPReferenceCall(self.actor_id, self.conn_id, name)
+		return HTTPReferenceCall(self, name)
 		
-	def get(self, url):
-		return self.actor_id._http_call(self.conn_id, 'request', ('GET',url), {})
+	def get(self, url, body=None, **headers):
+		self.actor_id._http_call(self.conn_id, 'request', ('GET',url,body), headers)
+		return self
+		
+	def post(self, url, body=None, **headers):
+		self.actor_id._http_call(self.conn_id, 'request', ('POST',url,body), headers)
+		return self
+		
+	def put(self, url, body=None, **headers):
+		self.actor_id._http_call(self.conn_id, 'request', ('PUT',url,body), headers)
+		return self
+
+	def delete(self, url, body=None, **headers):
+		self.actor_id._http_call(self.conn_id, 'request', ('DELETE',url,body), headers)
+		return self
 	
 
 class HTTPReferenceCall(object):
 	
-	def __init__(self, actor, conn_id, method):
-		self.actor = actor
-		self.conn_id = conn_id
+	def __init__(self, ref, method):
+		self.ref = ref
 		self.method = method
 	
 	def __call__(self, *args, **kwds):
-		return self.actor._http_call(self.conn_id, self.method, args, kwds)
+		result = self.ref.actor_id._http_call(ref.conn_id, self.method, args, kwds)
+		if not result:
+			result = self.ref
+		return result
 		
 class StageHTTPResponse(object):
 	

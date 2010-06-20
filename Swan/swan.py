@@ -52,7 +52,7 @@ class Launcher(LocalActor):
 				for (s,p) in bindings.iteritems():
 					all(registries).register(p,handler_pools[name],(s if not s == 'default' else None))
 			else:
-				handler_pools[name] = get_pool(cls)
+				handler_pools[name] = pool(reduce(lambda a, i: a + i, [get_pool(cls).actor_ids for i in range(0,8)]))
 				for (s,p) in bindings.iteritems():
 					all(registries).register(p,handler_pools[name],(s if not s == 'default' else None))
 		# Test().start()
@@ -80,11 +80,18 @@ def init_handlers(path):
 def start(path, models, handlers):
 	Launcher(path, models, handlers)
 
-options = {'kitchensink':3,'launch':2,'compile':1}
+options = {'create':8,'sync':4,'kitchensink':3,'launch':2,'compile':1}
 
 if __name__ == '__main__':
 	runlevel = options[sys.argv[1]]
 	path = sys.argv[2]
+	
+	if runlevel & 8 == 8:#create app directory
+		pass
+	
+	if runlevel & 4 == 4:#database sync
+		pass
+	
 	if runlevel & 1 == 1:#compile
 		print "Compiling..."
 		filepath = os.path.abspath(path)
